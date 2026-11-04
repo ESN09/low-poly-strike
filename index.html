@@ -244,8 +244,8 @@ function sandbags(cx,cz,sx,sz){addBox(cx,cz,sx,sz,1.15,TM(sidingT,.9,0xc2b27a))}
 function dumpster(x,z,alongX=true){addBox(x,z,alongX?2.6:1.4,alongX?1.4:2.6,1.3,L(0x2f8f4a))}
 function container(x,z,c,alongZ=false,st=1){const m=TM(metalT,2.2,c);for(let i=0;i<st;i++)alongZ?addBox(x,z,2.4,6.1,2.6,m,i*2.6):addBox(x,z,6.1,2.4,2.6,m,i*2.6)}
 function crate(x,z,s=1.6,h=1.5){addBox(x,z,s,s,h,crateM)}
-function cone(x,z){S3(new THREE.ConeGeometry(.25,.7,8),L(0xff7b00),x,.35,z)}
-function mailbox(x,z){dec(.12,1,.12,L(0x6b4a2a),x,.5,z);dec(.5,.3,.3,L(0x2ec4ff),x,1.1,z,true)}
+function cone(x,z){S3(new THREE.ConeGeometry(.25,.7,8),L(0xff7b00),x,.35,z);col_(x,z,.25,.25,.7)}
+function mailbox(x,z){dec(.12,1,.12,L(0x6b4a2a),x,.5,z);dec(.5,.3,.3,L(0x2ec4ff),x,1.1,z,true);col_(x,z,.25,.2,1.25)}
 function gable(cx,cz,w,d,y,rh,col){const s=new THREE.Shape();s.moveTo(-d/2,0);s.lineTo(d/2,0);s.lineTo(0,rh);s.closePath();
  const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:w,bevelEnabled:false}),RF(col));m.rotation.y=-Math.PI/2;m.position.set(cx+w/2,y,cz);m.castShadow=m.receiveShadow=true;scene.add(m);worldMeshes.push(m)}
 const _rt=roofT.clone();_rt.needsUpdate=true;_rt.repeat.set(.35,.35);const _rf={};
@@ -460,6 +460,7 @@ function makeEnemy(i){
  add(new THREE.BoxGeometry(.62,.16,.56),0x3a4a3a,0,2.08,0);add(new THREE.BoxGeometry(.4,.07,.1),0xff3b6b,0,1.88,.25);
  e.legL=add(new THREE.BoxGeometry(.28,.7,.3),0x2b2d42,-.18,.35,0);e.legR=add(new THREE.BoxGeometry(.28,.7,.3),0x2b2d42,.18,.35,0);
  e.armL=add(new THREE.BoxGeometry(.2,.7,.2),col,-.46,1.2,.1);e.gun=add(new THREE.BoxGeometry(.2,.2,.7),0x222233,.4,1.25,.4);
+ {const hm_=new THREE.MeshBasicMaterial({visible:false}),hb=(geo,y,head)=>{const m=new THREE.Mesh(geo,hm_);m.position.y=y;m.userData.e=e;m.userData.head=head;e.g.add(m);return m};e.hb=[hb(new THREE.BoxGeometry(.9,1.62,.75),.81,false),hb(new THREE.BoxGeometry(.66,.62,.66),1.9,true)]}
  e.g.rotation.order='YXZ';scene.add(e.g);
  e.bar=new THREE.Group();e.bar.add(new THREE.Mesh(new THREE.PlaneGeometry(1.2,.14),barBg));
  e.fill=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.08),barFg);e.fill.position.z=.01;e.bar.add(e.fill);scene.add(e.bar);
@@ -494,11 +495,12 @@ function shoot(w){
  const rec=w.recoil*(1-adsT*.4);P.pitch+=rec*.55;kick+=rec*.45;P.yaw+=R(-1,1)*rec*.5;bloom=Math.min(.05,bloom+w.bloom);
  w.muz.visible=true;muzT=.045;
  const sp=spreadCur+bloom*(1-adsT*.5),targets=worldMeshes.slice();let hitE=false;
- enemies.forEach(e=>{if(e.alive)targets.push(...e.parts)});
+ for(let i=targets.length-1;i>=0;i--){const mt=targets[i].material;if(mt&&mt.transparent===true)targets.splice(i,1)}
+ enemies.forEach(e=>{if(e.alive)targets.push(...e.hb)});
  const mp=new THREE.Vector3();w.muz.getWorldPosition(mp);if(S.gfx>0&&(!w.auto||w.mag%3===0))smoke(mp);
  for(let i=0;i<w.pel;i++){
-  const d=new THREE.Vector3(R(-sp,sp),R(-sp,sp),-1).normalize().applyQuaternion(camera.quaternion);
-  rc.set(camera.position,d);rc.far=150;const hs=rc.intersectObjects(targets,false),h=hs[0];
+  const sa=Math.random()*6.2832,sr=sp*Math.random(),d=new THREE.Vector3(Math.cos(sa)*sr,Math.sin(sa)*sr,-1).normalize().applyQuaternion(camera.quaternion);
+  rc.set(camera.position,d);rc.far=150;const hs=rc.intersectObjects(targets,false);let h=null;for(const q of hs){if(q.object.userData.e||q.distance>.7){h=q;break}}
   const end=h?h.point:camera.position.clone().addScaledVector(d,80);
   if(i<3)tracer(mp,end,0xffe14d);if(i===0&&(MODE==='online'||MODE==='ffa')&&T-net.lf>.12){net.lf=T;xsend({t:'f',a:[mp.x,mp.y,mp.z],b:[end.x,end.y,end.z]})}
   if(h){const o=h.object;if(o.userData.e){hitE=true;damage(o.userData.e,w.dmg*(o.userData.head?2:1),o.userData.head)}else{spark(h.point,0xdddddd);sfx.impact();hole(h)}}}
@@ -744,6 +746,7 @@ function update(dt){
  if(P.sl>0){P.sl-=dt;const q=Math.max(0,P.sl/.8),v=3+9*q*q,aa=Math.min(1,14*dt);P.vx+=(P.sx*v-P.vx)*aa;P.vz+=(P.sz*v-P.vz)*aa}
  else{const nv=Math.hypot(P.vx,P.vz),dot=nv>.5&&l>0?(P.vx*wx+P.vz*wz)/nv:1,aa=Math.min(1,(P.ground?(l>0?(dot<.3?9:5.2):6.5):(l>0?3.4:.25))*dt);P.vx+=(wx*sp-P.vx)*aa;P.vz+=(wz*sp-P.vz)*aa}
  const tryMove=(nx,nz)=>{if(!blk(nx,nz,P.y,.4))return true;if(kd('jump')&&l>0&&P.vy>-2){let top=-1;for(const b of boxes)if(P.y<b.top-.3&&(b.b0===undefined||P.y+1.4>b.b0+.001)&&nx>b.x0-.4&&nx<b.x1+.4&&nz>b.z0-.4&&nz<b.z1+.4)top=Math.max(top,b.top);const hh=top-P.y;if(top>0&&hh>.3&&hh<1.9){P.vy=Math.max(P.vy,Math.sqrt(48*(hh+.25)));P.ground=false;return true}}return false};
+ if(P.ground&&blk(P.x,P.z,P.y,.38)){let ok=false;for(let r=.3;r<=4&&!ok;r+=.3)for(let a=0;a<16;a++){const ux=P.x+Math.cos(a*.3927)*r,uz=P.z+Math.sin(a*.3927)*r;if(Math.abs(ux)<MAP.hx-1&&Math.abs(uz)<MAP.hz-1&&!blk(ux,uz,P.y,.4)){P.x=ux;P.z=uz;P.vx=P.vz=0;ok=true;break}}}
  let nx=P.x+P.vx*dt;if(tryMove(nx,P.z))P.x=nx;else P.vx=0;let nz=P.z+P.vz*dt;if(tryMove(P.x,nz))P.z=nz;else P.vz=0;
  P.coy=P.ground?0:P.coy+dt;
  if(kd('jump')&&(P.ground||(P.coy<.1&&P.vy<=0))&&(!P.crouch||P.sl>0)){P.vy=8.6;P.ground=false;P.coy=9;P.sl=0}
