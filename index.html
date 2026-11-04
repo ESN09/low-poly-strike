@@ -77,6 +77,7 @@ h1{margin:0;font-weight:400;font-size:clamp(36px,7vw,64px);line-height:.95;color
 </style></head><body>
 <canvas id="c"></canvas>
 <div class="hud">
+  <div id="mapn" style="position:absolute;top:16%;left:0;right:0;text-align:center;font-size:34px;color:#fff;text-shadow:0 3px 0 #000a;opacity:0;transition:opacity .5s;pointer-events:none"></div>
   <div id="stats"><b>SCORE <span id="sc">0</span></b><b>KILLS <span id="ki">0</span></b><b><span id="wl">VAGUE</span> <span id="wv">1</span></b></div>
   <canvas id="mm" width="140" height="140"></canvas>
   <div id="shw"><div id="sh"><i></i></div><span id="shn">0</span></div><div id="pot"></div><div id="dr"><i></i></div>
@@ -335,7 +336,7 @@ function setMap(i){MAPS.forEach(m=>m.objs.forEach(o=>o.visible=false));const M=M
  if(M.sp&&!M.ok){M.ok=1;M.sp=M.sp.map(p=>{if(!blk(p[0],p[1],0,.8))return p;for(let r=1;r<10;r+=.5)for(let a=0;a<8;a++){const x=p[0]+Math.cos(a*.785)*r,z=p[1]+Math.sin(a*.785)*r;if(Math.abs(x)<M.hx-2&&Math.abs(z)<M.hz-2&&!blk(x,z,0,.8)&&groundAt(x,z,0)===0)return[x,z]}return p})}
  MAP=M}
 setMap(0);
-const sel={mode:'survie',map:1,target:5,lvl:4,p:0,s:4,smap:0};
+const sel={rnd:0,mode:'survie',map:1,target:5,lvl:4,p:0,s:4,smap:0};
 const blk=(x,z,y,r)=>{for(const b of boxes)if(y<b.top-.3&&(b.b0===undefined||y+1.4>b.b0+.001)&&x>b.x0-r&&x<b.x1+r&&z>b.z0-r&&z<b.z1+r)return true;return false};
 function groundAt(x,z,y){let h=0;for(const b of boxes)if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&y>=b.top-.4&&b.top>h&&b.top<8)h=b.top;
  for(const r of ramps){const t=(x-r.xa)*r.dir;if(t>0&&t<r.len&&Math.abs(z-r.zc)<r.w/2&&y>=(r.y0||0)-.5){const q=(r.y0||0)+t/r.len*r.H;if(q>h)h=q}}return h}
@@ -411,7 +412,7 @@ function spawnAt(e){let p=[30,30];if(MODE!=='survie')p=far(P.x,P.z);else if(MAP.
 function addEnemy(){const e=makeEnemy(enemies.length);enemies.push(e);spawnAt(e)}
 function damage(e,d,head){if(e.remote){netSend({t:'h',d,hd:head?1:0});sfx.hit(head);hm(false);return}e.hp-=d;sfx.hit(head);hm(head||e.hp<=0);
  if(e.hp<=0){e.alive=false;e.dying=.001;e.bar.visible=false;kills++;score+=100+(head?50:0);if(MODE==='survie'&&Math.random()<.4)spawnPot(e.x,e.z);sfx.die();W.forEach(w=>w.res+=Math.max(1,w.magMax/3|0));
-  if(MODE==='survie'&&kills%4===0){wave++;if(enemies.length<12)addEnemy()}if(MODE!=='survie'&&kills>=target)matchEnd(true)}}
+  if(MODE==='survie'&&kills%4===0){wave++;if(enemies.length<12)addEnemy()}if(MODE!=='survie'&&kills>=target)matchEnd(true);else if(MODE==='duel'&&sel.rnd)rndMap()}}
 
 /* ---------- état joueur ---------- */
 const P={x:0,y:0,z:8,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,ground:true,eye:1.7,crouch:false,bob:0,lastHurt:-9,inv:0,sh:0,pot:1,coy:0,sl:0,cp:false,sx:0,sz:0,roll:0,dip:0,spK:0,stp:0};
@@ -456,8 +457,12 @@ const RK=[['BRONZE','#cd7f32'],['ARGENT','#c9d3dd'],['OR','#ffd23f'],['PLATINE',
 let RP=0;try{RP=+localStorage.getItem('lps_rp')||0}catch(e){}
 const rankIdx=()=>Math.min(5,RP/100|0);
 function far(x,z){return MAP.sp.slice().sort((a,b)=>Math.hypot(b[0]-x,b[1]-z)-Math.hypot(a[0]-x,a[1]-z))[Math.random()<.7?0:1]}
-function setAI(l){AI={spd:Math.min(9.5,3.2+l*.45),acc:.55+l*.2,cd:Math.max(.3,1.1-l*.1),dm:.8+l*.1}}
+function setAI(l){AI={spd:Math.min(4.4,2.4+l*.2),acc:.55+l*.2,cd:Math.max(.3,1.1-l*.1),dm:.8+l*.1}}
+function showMapName(n){const el=$('mapn');el.textContent='CARTE : '+n.toUpperCase();el.style.opacity=1;clearTimeout(showMapName.t);showMapName.t=setTimeout(()=>el.style.opacity=0,2400)}
+function rndMap(){let n,c=MAPS.indexOf(MAP);do{n=1+(Math.random()*(MAPS.length-1)|0)}while(n===c&&MAPS.length>2);setMap(n);const p=MAP.sp[Math.random()*MAP.sp.length|0];P.x=p[0];P.z=p[1];P.y=0;P.vx=P.vz=P.vy=0;P.inv=T+1.5;P.yaw=Math.atan2(P.x,P.z);P.pitch=0;
+ const e=enemies[0];if(e){e.alive=false;e.dying=0;e.g.visible=false;e.bar.visible=false;e.rt=1.4;e.mx=e.mz=0}clearPots();for(let i=0;i<3;i++)spawnPot();showMapName(MAP.name)}
 function roundReset(){
+ if(MODE==='duel'&&sel.rnd){rndMap();P.hp=100;P.sh=0;reloadT=0;drinkT=0;kick=0;W.forEach(w=>{w.mag=w.magMax;w.res=w.r0});return}
  if(MODE==='online'){const sp=MAP.sp,n=sp.length/2|0,pr=net.round%n,p=sp[2*pr+(net.host?0:1)],o=sp[2*pr+(net.host?1:0)];
   P.x=p[0];P.z=p[1];P.y=0;P.vx=P.vz=P.vy=0;P.hp=100;P.sh=0;P.inv=T+1.5;reloadT=0;drinkT=0;kick=0;P.pitch=0;P.yaw=Math.atan2(P.x-o[0],P.z-o[1]);
   W.forEach(w=>{w.mag=w.magMax;w.res=w.r0});const r=enemies[0];if(r){r.alive=false;r.g.visible=r.bar.visible=false}return}
@@ -626,11 +631,12 @@ function updEnemy(e,dt){
  if(e.dying>0){e.dying+=dt;e.g.rotation.x=-Math.min(1,e.dying*3)*1.5;if(e.dying>.9){e.g.visible=false;e.dying=0;e.rt=3}}
  else if(!e.alive){e.rt-=dt;if(e.rt<=0)spawnAt(e)}
  else{
-  const dx=P.x-e.x,dz=P.z-e.z,d=Math.hypot(dx,dz)||1,spd=MODE==='survie'?Math.min(10,4.6+wave*.5):AI.spd;e.ph+=dt*8;e.sdT-=dt;if(e.sdT<=0){e.sd*=-1;e.sdT=MODE==='survie'?R(.6,1.6):R(1.5,3.5)}
-  const want=MODE==='survie'?(d>9?1:d<5?-.5:0):(d>14?1:d<8?-.6:0),vx=dx/d*want*spd-dz/d*e.sd*spd*.7,vz=dz/d*want*spd+dx/d*e.sd*spd*.7;
+  const dx=P.x-e.x,dz=P.z-e.z,d=Math.hypot(dx,dz)||1,spd=MODE==='survie'?Math.min(4.7,2.7+wave*.14):AI.spd;e.ph+=dt*8;e.sdT-=dt;if(e.sdT<=0){e.sd*=-1;e.sdT=MODE==='survie'?R(.6,1.6):R(1.5,3.5)}
+  const want=MODE==='survie'?(d>9?1:d<5?-.5:0):(d>14?1:d<8?-.6:0),tvx=dx/d*want*spd-dz/d*e.sd*spd*.55,tvz=dz/d*want*spd+dx/d*e.sd*spd*.55,ea=Math.min(1,3.5*dt);
+  e.mx=(e.mx||0)+(tvx-(e.mx||0))*ea;e.mz=(e.mz||0)+(tvz-(e.mz||0))*ea;const vx=e.mx,vz=e.mz;
   let nx=e.x+vx*dt,bx=blk(nx,e.z,e.y+1,.5);if(!bx)e.x=nx;let nz=e.z+vz*dt,bz=blk(e.x,nz,e.y+1,.5);if(!bz)e.z=nz;
   if(bx||bz){e.st=(e.st||0)+dt;if(e.st>.4){e.sd*=-1;e.det=.9;e.st=0}}else e.st=0;
-  if(e.det>0){e.det-=dt;const px=-dz/d*e.sd*spd,pz=dx/d*e.sd*spd;if(!blk(e.x+px*dt,e.z,e.y+1,.5))e.x+=px*dt;if(!blk(e.x,e.z+pz*dt,e.y+1,.5))e.z+=pz*dt}
+  if(e.det>0){e.det-=dt;const px=-dz/d*e.sd*spd*.7,pz=dx/d*e.sd*spd*.7;if(!blk(e.x+px*dt,e.z,e.y+1,.5))e.x+=px*dt;if(!blk(e.x,e.z+pz*dt,e.y+1,.5))e.z+=pz*dt}
   e.y=groundAt(e.x,e.z,e.y+1);e.g.position.set(e.x,e.y+Math.abs(Math.sin(e.ph))*.05*(want||e.sd?1:0),e.z);e.g.rotation.y=Math.atan2(dx,dz);
   const sw=Math.sin(e.ph)*.5;e.legL.rotation.x=sw;e.legR.rotation.x=-sw;
   e.cd-=dt;
@@ -650,9 +656,9 @@ function update(dt){
  P.cp=cNow;if(!cNow)P.sl=0;P.crouch=cNow;
  const sprint=kd('sprint')&&f>0&&!P.crouch&&!ads&&reloadT<=0;
  let wx=-Math.sin(P.yaw)*f+Math.cos(P.yaw)*s,wz=-Math.cos(P.yaw)*f-Math.sin(P.yaw)*s;const l=Math.hypot(wx,wz);if(l>0){wx/=l;wz/=l}
- const sp=(sprint?9:5.5)*(P.crouch?.55:1)*(1-adsT*.35);
+ const spT=(sprint?9:5.5)*(P.crouch?.55:1)*(1-adsT*.35);P.spd=P.spd||5.5;P.spd+=(spT-P.spd)*Math.min(1,3.8*dt);const sp=P.spd;
  if(P.sl>0){P.sl-=dt;const q=Math.max(0,P.sl/.8),v=3+9*q*q,aa=Math.min(1,14*dt);P.vx+=(P.sx*v-P.vx)*aa;P.vz+=(P.sz*v-P.vz)*aa}
- else{const aa=Math.min(1,(P.ground?12:(l>0?3.4:.25))*dt);P.vx+=(wx*sp-P.vx)*aa;P.vz+=(wz*sp-P.vz)*aa}
+ else{const nv=Math.hypot(P.vx,P.vz),dot=nv>.5&&l>0?(P.vx*wx+P.vz*wz)/nv:1,aa=Math.min(1,(P.ground?(l>0?(dot<.3?9:5.2):6.5):(l>0?3.4:.25))*dt);P.vx+=(wx*sp-P.vx)*aa;P.vz+=(wz*sp-P.vz)*aa}
  const tryMove=(nx,nz)=>{if(!blk(nx,nz,P.y,.4))return true;if(kd('jump')&&l>0&&P.vy>-2){let top=-1;for(const b of boxes)if(P.y<b.top-.3&&(b.b0===undefined||P.y+1.4>b.b0+.001)&&nx>b.x0-.4&&nx<b.x1+.4&&nz>b.z0-.4&&nz<b.z1+.4)top=Math.max(top,b.top);const hh=top-P.y;if(top>0&&hh>.3&&hh<1.9){P.vy=Math.max(P.vy,Math.sqrt(48*(hh+.25)));P.ground=false;return true}}return false};
  let nx=P.x+P.vx*dt;if(tryMove(nx,P.z))P.x=nx;else P.vx=0;let nz=P.z+P.vz*dt;if(tryMove(P.x,nz))P.z=nz;else P.vz=0;
  P.coy=P.ground?0:P.coy+dt;
@@ -744,7 +750,7 @@ const lo=()=>'Principale '+chips(CN,'p')+'<br>Secondaire '+chips(CN,'s');
 function chips(arr,key){return arr.map(([l,v])=>`<span class="chip${sel[key]===v?' on':''}" data-k="${key}" data-v="${v}">${l}</span>`).join('')}
 function renderOpt(){const o=$('opt');
  if(sel.mode==='survie')o.innerHTML='Survis aux vagues de bots très agressifs.<br>Carte '+chips(MAPS.map((m,i)=>[m.name,i]),'smap');
- else if(sel.mode==='duel')o.innerHTML='Carte '+chips(MAPS.slice(1).map((m,i)=>[m.name,i+1]),'map')+'<br>Premier à '+chips([['3',3],['5',5],['10',10]],'target')+'<br>IA '+chips([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl')+'<br>'+lo();
+ else if(sel.mode==='duel')o.innerHTML='Carte '+chips(MAPS.slice(1).map((m,i)=>[m.name,i+1]),'map')+'<br>Premier à '+chips([['3',3],['5',5],['10',10]],'target')+'<br>Carte aléatoire à chaque mort '+chips([['Non',0],['Oui',1]],'rnd')+'<br>IA '+chips([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl')+'<br>'+lo();
  else if(sel.mode==='online')o.innerHTML=netUI();
  else{const n=rankIdx();o.innerHTML=`<div id="rk" style="color:${RK[n][1]}">${RK[n][0]}</div>${RP} RP · prochain rang à ${n<5?(n+1)*100+' RP':'—'}<br>Match en 7 kills, carte fermée aléatoire, IA adaptée à ton rang.<br>${lo()}`}}
 $('modes').addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('.mb');if(!b)return;sel.mode=b.dataset.m;document.querySelectorAll('.mb').forEach(x=>x.classList.toggle('on',x===b));renderOpt()});
