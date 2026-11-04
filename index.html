@@ -33,6 +33,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:
 #dmg{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,30,80,.7))}
 .ov{position:fixed;inset:0;display:flex;overflow:auto;background:radial-gradient(circle at 50% 40%,#4a1fa8cc,#120a2ee6);cursor:pointer;text-align:center;padding:20px}
 .ov.off{display:none}
+.lb{position:fixed;top:92px;width:clamp(170px,19vw,270px);background:#120a2ecc;border:3px solid #ffffff30;border-radius:14px;padding:10px 12px;text-align:left;pointer-events:none;font-size:15px}
+.lb h3{margin:0 0 6px;text-align:center;color:var(--y);font-size:17px;letter-spacing:1px}
+.lb div{display:flex;justify-content:space-between;gap:8px;padding:2px 0;white-space:nowrap}.lb div span:first-child{overflow:hidden;text-overflow:ellipsis}.lb div b{color:#7dff9a}.lb .me{color:var(--y)}.lb small{display:block;text-align:center;color:#d9ccff;opacity:.7;margin-top:6px;font-size:12px}
+#lbL{left:14px}#lbR{right:14px}
+@media(max-width:1180px){.lb{display:none}}
 .panel{max-width:600px;margin:auto}
 #modes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
 .mb{flex:1;min-width:118px;max-width:180px;padding:10px 6px;border:3px solid #fff8;border-radius:12px;background:#0006;cursor:pointer}
@@ -109,7 +114,7 @@ h1{margin:0;font-weight:400;font-size:clamp(36px,7vw,64px);line-height:.95;color
   <div id="wp"><div id="wn">AR-X7</div><div id="am">30<span> / 120</span></div></div>
   <div id="scope"></div><div class="ch" id="ch"><i></i><i></i><i></i><i></i></div><div id="hm"></div><div id="dmg"></div>
 </div>
-<div class="ov" id="st"><div class="panel"><h1>LOW-POLY<br>STRIKE</h1>
+<div class="ov" id="st"><div class="lb" id="lbL"></div><div class="lb" id="lbR"></div><div class="panel"><h1>LOW-POLY<br>STRIKE</h1>
 <div id="prof"><input id="pname" maxlength="14" placeholder="Pseudo" autocomplete="off"><div style="flex:1"><div id="plv"></div><div id="xpb"><i></i></div></div></div><div id="chl"></div>
 <div class="keys">Touches modifiables dans les Réglages (ZQSD / WASD par défaut) · <b>Maj</b> courir · <b>Espace</b> sauter · <b>C</b> s’accroupir / glisser<br><b>Clic gauche</b> tirer · <b>Clic droit</b> viser · <b>R</b> recharger · <b>1 / 2 / molette</b> arme · <b>F</b> potion bouclier</div>
 <div id="modes"><div class="mb on" data-m="survie"><b>SURVIE</b><small>Vagues d’ennemis</small></div><div class="mb" data-m="duel"><b>DUEL 1v1</b><small>Contre l’IA</small></div><div class="mb" data-m="ranked"><b>RANKED</b><small>Grimpe les rangs</small></div><div class="mb" data-m="online"><b>EN LIGNE</b><small>1v1 contre un ami</small></div><div class="mb" data-m="ffa"><b>MÊLÉE</b><small>2 à 8 joueurs en ligne</small></div></div><div id="opt"></div>
@@ -509,7 +514,7 @@ function shoot(w){
  if(w.mag<=0)startReload()}
 
 function hurt(d){if(T<P.inv||state!=='play'||((MODE==='online'||MODE==='ffa')&&!locked))return;if(P.sh>0){const a=Math.min(P.sh,d);P.sh-=a;d-=a}P.hp-=d;P.lastHurt=T;dmgFx=1;sfx.hurt();if(P.hp<=0){streak=0;PR.deaths++;if(MODE==='survie')gameOver();else if(MODE==='online')netDie();else if(MODE==='ffa')ffaDie();else{eScore++;if(eScore>=target)matchEnd(false);else roundReset()}}}
-function gameOver(){state='over';PR.matches++;PR.bestWave=Math.max(PR.bestWave,wave);addXP(wave*30);savePR();$('gt').textContent='ÉLIMINÉ !';$('gt').style.color='var(--r)';document.exitPointerLock();$('gos').innerHTML=`Score <b style="color:var(--y)">${score}</b> · Kills <b style="color:var(--b)">${kills}</b> · Vague <b style="color:var(--r)">${wave}</b>`;$('go').classList.remove('off')}
+function gameOver(){state='over';PR.matches++;PR.bestWave=Math.max(PR.bestWave,wave);addXP(wave*30);savePR();lbSync(true);$('gt').textContent='ÉLIMINÉ !';$('gt').style.color='var(--r)';document.exitPointerLock();$('gos').innerHTML=`Score <b style="color:var(--y)">${score}</b> · Kills <b style="color:var(--b)">${kills}</b> · Vague <b style="color:var(--r)">${wave}</b>`;$('go').classList.remove('off')}
 function reset(){MODE=sel.mode;eScore=0;net.round=0;if(MODE==='survie'){setMap(sel.smap);target=0}else{setMap(MODE==='ranked'?1+(Math.random()*(MAPS.length-1)|0):sel.map);target=MODE==='ranked'?7:sel.target;setAI(MODE==='ranked'?4+rankIdx()*1.4:sel.lvl)}
  P.x=0;P.z=8;if(MAP.sp){const p=MODE==='online'?MAP.sp[net.host?0:1]:MODE==='ffa'?MAP.sp[Math.max(0,ffa.id)%MAP.sp.length]:MAP.sp[Math.random()*MAP.sp.length|0];P.x=p[0];P.z=p[1]}P.y=0;P.inv=0;P.sh=0;P.pot=1;drinkT=0;potT=0;clearPots();if(MODE!=='online'&&MODE!=='ffa')for(let i=0;i<3;i++)spawnPot();P.vx=P.vz=P.vy=0;P.hp=100;P.pitch=0;P.yaw=0;kills=score=0;streak=0;wave=1;reloadT=0;
  {W[0]=CLS[sel.p];W[1]=CLS[sel.s]}W.forEach(w=>{w.mag=w.magMax;w.res=w.r0});setWeapon(0);
@@ -585,7 +590,7 @@ function wsAct(a){netClose();const create=a==='create',code=create?Math.random()
  ws.onerror=()=>{net.msg='Serveur injoignable.';renderOpt()};
  ws.onclose=()=>{if(net.ws===ws&&c.open){c.open=false;if(c.h.close)c.h.close()}}}
 try{if(window.claude&&window.claude.use)window.claude.use('room').then(r=>{if(r){net.room=true;if(sel.mode==='online')renderOpt()}}).catch(()=>{})}catch(e){}
-try{fetch('/ping').then(r=>r.text()).then(t=>{if(t==='lps'){net.relay=true;if(sel.mode==='online'||sel.mode==='ffa')renderOpt()}}).catch(()=>{})}catch(e){}
+try{fetch('/ping').then(r=>r.text()).then(t=>{if(t==='lps'){net.relay=true;if(sel.mode==='online'||sel.mode==='ffa')renderOpt();if(typeof lbSync==='function')lbSync(true)}}).catch(()=>{})}catch(e){}
 /*MQ-START*/
 const BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt',
  c=>bcClient('wss://demo.piesocket.com/v3/lps'+c+'?api_key=VCXCEuvhGcBDP7XhiJJUDvR1e1D3eiVjgZ9VRiaV'),
@@ -951,6 +956,17 @@ function ffaRank(){const L=Object.values(ffa.players).sort((a,b)=>b.k-a.k),m=ffa
 const CN=[['Assaut',0],['Pompe',1],['Sniper',2],['SMG',3],['Pistolet',4]];
 const lo=()=>'Principale '+chips(CN,'p')+'<br>Secondaire '+chips(CN,'s');
 function chips(arr,key){return arr.map(([l,v])=>`<span class="chip${sel[key]===v?' on':''}" data-k="${key}" data-v="${v}">${l}</span>`).join('')}
+/* ---------- classement ---------- */
+const LBS={d:null,t:0,p:0};
+function lbDraw(){const d=LBS.d,me=(PR.name||'').toLowerCase(),L=lvOf(PR.xp).lv;
+ const rows=(a,f)=>a.length?a.map((e,i)=>'<div class="'+(e.n.toLowerCase()===me?'me':'')+'"><span>'+(i+1)+'. '+esc(e.n)+'</span><b>'+f(e)+'</b></div>').join(''):'<div><span>Aucun score</span></div>';
+ const w=d?d.w:(PR.bestWave>0?[{n:PR.name||'Moi',w:PR.bestWave,l:L}]:[]),l=d?d.l:[{n:PR.name||'Moi',w:PR.bestWave,l:L}];
+ const note=d?'':'<small>Classement mondial : ouvre le jeu depuis ton site Render</small>';
+ $('lbL').innerHTML='<h3>🏆 SURVIE · VAGUE MAX</h3>'+rows(w,e=>'V'+e.w)+note;
+ $('lbR').innerHTML='<h3>⭐ NIVEAUX</h3>'+rows(l,e=>'Niv '+e.l)+note}
+function lbSync(force){lbDraw();if(!net.relay)return;if(!force&&T-LBS.t<8&&performance.now()-LBS.p<8000)return;LBS.p=performance.now();
+ try{fetch('/lb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n:PR.name,w:PR.bestWave,l:lvOf(PR.xp).lv})}).then(r=>r.json()).then(d=>{if(d&&d.w){LBS.d=d;lbDraw()}}).catch(()=>{})}catch(e){}}
+setInterval(()=>{if(state==='menu')lbSync(false)},20000);
 function renderOpt(){renderOpt0();if(sel.mode==='survie'||sel.mode==='duel'||sel.mode==='ffa'){$('opt').insertAdjacentHTML('beforeend','<canvas id="pv" width="260" height="150"></canvas>');drawPV(sel.mode==='survie'?sel.smap:sel.map)}}
 function renderOpt0(){const o=$('opt');
  if(sel.mode==='survie')o.innerHTML='Survis aux vagues de bots très agressifs. <b style="color:#7dff9a">+50 PV à chaque kill</b><br>Carte '+chips(MAPS.map((m,i)=>[m.name,i]),'smap')+'<br>'+lo();
@@ -960,7 +976,7 @@ function renderOpt0(){const o=$('opt');
  else{const n=rankIdx();o.innerHTML=`<div id="rk" style="color:${RK[n][1]}">${RK[n][0]}</div>${RP} RP · prochain rang à ${n<5?(n+1)*100+' RP':'—'}<br>Match en 7 kills, carte fermée aléatoire, IA adaptée à ton rang.<br>${lo()}`}}
 $('modes').addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('.mb');if(!b)return;sel.mode=b.dataset.m;document.querySelectorAll('.mb').forEach(x=>x.classList.toggle('on',x===b));renderOpt()});
 $('opt').addEventListener('click',e=>{e.stopPropagation();const c=e.target.closest('.chip');if(!c)return;if(c.dataset.a){if(c.dataset.a[0]==='f')ffaAct(c.dataset.a);else netAct(c.dataset.a);return}sel[c.dataset.k]=+c.dataset.v;if(sel.p===sel.s){if(c.dataset.k==='p')sel.s=(sel.p+1)%5;else sel.p=(sel.s+1)%5}if(state==='menu'&&(c.dataset.k==='map'||c.dataset.k==='smap'))setMap(sel[c.dataset.k]);renderOpt()});
-function toMenu(){netClose();ffaClose();ffa.msg='';net.msg='';state='menu';$('go').classList.add('off');$('st').classList.remove('off');$('stb').textContent='CLIQUER POUR JOUER';$('modes').style.display=$('opt').style.display='';$('quit').style.display='none';renderOpt()}
+function toMenu(){lbSync(true);netClose();ffaClose();ffa.msg='';net.msg='';state='menu';$('go').classList.add('off');$('st').classList.remove('off');$('stb').textContent='CLIQUER POUR JOUER';$('modes').style.display=$('opt').style.display='';$('quit').style.display='none';renderOpt()}
 $('quit').addEventListener('click',e=>{e.stopPropagation();toMenu()});
 $('gm').addEventListener('click',e=>{e.stopPropagation();toMenu()});
 renderOpt();
@@ -987,7 +1003,7 @@ $('s_dn').checked=!!S.dn;$('s_dn').addEventListener('change',e=>{S.dn=e.target.c
 $('s_fps').checked=!!S.fps;$('s_fps').addEventListener('change',e=>{S.fps=e.target.checked?1:0;save();if(!S.fps)$('fps').textContent=''});
 $('skg').addEventListener('click',e=>{const q=e.target.closest('.sk');if(!q||q.classList.contains('lk'))return;PR.skin=+q.dataset.i;applySkin();savePR();drawStats()});
 $('prst').addEventListener('click',()=>{const el=$('prst');if(el.dataset.c){const nm=PR.name;Object.keys(PD).forEach(a=>PR[a]=Array.isArray(PD[a])?[]:PD[a]);PR.name=nm;genCh();savePR();applySkin();drawProf();drawStats();delete el.dataset.c;el.textContent='Réinitialiser la progression'}else{el.dataset.c=1;el.textContent='Cliquer encore pour confirmer'}});
-applyGfx();applySkin();drawProf();drawGfx();
+applyGfx();applySkin();drawProf();drawGfx();lbDraw();
 requestAnimationFrame(loop);
 })();
 </script></body></html>
