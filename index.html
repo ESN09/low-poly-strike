@@ -473,7 +473,7 @@ function damage(e,d,head){const hp0=new THREE.Vector3(e.x+R(-.2,.2),e.y+(head?2.
  if(e.remote){if(e.pid!==undefined)ffaSend({t:'h',i:ffa.id,to:e.pid,d,hd:head?1:0});else netSend({t:'h',d,hd:head?1:0});sfx.hit(head);hm(false);dmgNum(hp0,d,head,false);if(head){PR.heads++;chEv('head')}return}
  e.hp-=d;sfx.hit(head);hm(head||e.hp<=0);dmgNum(hp0,d,head,e.hp<=0);if(head){PR.heads++;chEv('head')}
  if(e.hp>0){e.fl=.2;sfx.grunt(panOf(e.x,e.z));if(e.hp<e.max*.5&&T-(e.lc||-9)>6){e.needCov=true;e.lc=T}else if(e.hp<e.max*.7&&Math.random()<.25)e.needCov=true}
- if(e.hp<=0){e.alive=false;e.dying=.001;e.bar.visible=false;kills++;streak++;score+=100+(head?50:0);if(MODE==='survie'&&Math.random()<.4)spawnPot(e.x,e.z);sfx.die();sfx.kill();W.forEach(w=>w.res+=Math.max(1,w.magMax/3|0));
+ if(e.hp<=0){e.alive=false;e.dying=.001;e.bar.visible=false;kills++;streak++;if(MODE==='survie'){P.hp=Math.min(100,P.hp+50);P.lastHurt=T}score+=100+(head?50:0);if(MODE==='survie'&&Math.random()<.4)spawnPot(e.x,e.z);sfx.die();sfx.kill();W.forEach(w=>w.res+=Math.max(1,w.magMax/3|0));
   PR.kills++;addXP(40+(head?20:0));chEv('kill');if(W[cur].snd==='sniper')chEv('snk');if(streak===3||streak===5||streak===8)toast('SÉRIE DE '+streak+' !');
   if(MODE==='survie'&&kills%4===0){wave++;PR.bestWave=Math.max(PR.bestWave,wave);chEv('wave',wave);if(enemies.length<12)addEnemy()}
   if(MODE!=='survie'&&kills>=target){slowT=.9;P.inv=T+3;setTimeout(()=>{if(state==='play')matchEnd(true)},750)}else if(MODE==='duel'&&sel.rnd)rndMap()}}
@@ -512,7 +512,7 @@ function hurt(d){if(T<P.inv||state!=='play'||((MODE==='online'||MODE==='ffa')&&!
 function gameOver(){state='over';PR.matches++;PR.bestWave=Math.max(PR.bestWave,wave);addXP(wave*30);savePR();$('gt').textContent='ÉLIMINÉ !';$('gt').style.color='var(--r)';document.exitPointerLock();$('gos').innerHTML=`Score <b style="color:var(--y)">${score}</b> · Kills <b style="color:var(--b)">${kills}</b> · Vague <b style="color:var(--r)">${wave}</b>`;$('go').classList.remove('off')}
 function reset(){MODE=sel.mode;eScore=0;net.round=0;if(MODE==='survie'){setMap(sel.smap);target=0}else{setMap(MODE==='ranked'?1+(Math.random()*(MAPS.length-1)|0):sel.map);target=MODE==='ranked'?7:sel.target;setAI(MODE==='ranked'?4+rankIdx()*1.4:sel.lvl)}
  P.x=0;P.z=8;if(MAP.sp){const p=MODE==='online'?MAP.sp[net.host?0:1]:MODE==='ffa'?MAP.sp[Math.max(0,ffa.id)%MAP.sp.length]:MAP.sp[Math.random()*MAP.sp.length|0];P.x=p[0];P.z=p[1]}P.y=0;P.inv=0;P.sh=0;P.pot=1;drinkT=0;potT=0;clearPots();if(MODE!=='online'&&MODE!=='ffa')for(let i=0;i<3;i++)spawnPot();P.vx=P.vz=P.vy=0;P.hp=100;P.pitch=0;P.yaw=0;kills=score=0;streak=0;wave=1;reloadT=0;
- {const a=MODE==='survie'?0:sel.p,b=MODE==='survie'?1:sel.s;W[0]=CLS[a];W[1]=CLS[b]}W.forEach(w=>{w.mag=w.magMax;w.res=w.r0});setWeapon(0);
+ {W[0]=CLS[sel.p];W[1]=CLS[sel.s]}W.forEach(w=>{w.mag=w.magMax;w.res=w.r0});setWeapon(0);
  enemies.forEach(e=>{scene.remove(e.g);scene.remove(e.bar)});enemies.length=0;
  if(MODE==='ffa'){for(const id in ffa.players){ffa.players[id].e=null;if(+id!==ffa.id)ffaEnt(+id)}P.yaw=Math.atan2(P.x,P.z)}
  else if(MODE==='online'){const e=makeEnemy(1);e.remote=true;e.alive=false;e.g.visible=e.bar.visible=false;e.max=100;e.hp=100;enemies.push(e);const o=MAP.sp[net.host?1:0];P.yaw=Math.atan2(P.x-o[0],P.z-o[1])}
@@ -953,7 +953,7 @@ const lo=()=>'Principale '+chips(CN,'p')+'<br>Secondaire '+chips(CN,'s');
 function chips(arr,key){return arr.map(([l,v])=>`<span class="chip${sel[key]===v?' on':''}" data-k="${key}" data-v="${v}">${l}</span>`).join('')}
 function renderOpt(){renderOpt0();if(sel.mode==='survie'||sel.mode==='duel'||sel.mode==='ffa'){$('opt').insertAdjacentHTML('beforeend','<canvas id="pv" width="260" height="150"></canvas>');drawPV(sel.mode==='survie'?sel.smap:sel.map)}}
 function renderOpt0(){const o=$('opt');
- if(sel.mode==='survie')o.innerHTML='Survis aux vagues de bots très agressifs.<br>Carte '+chips(MAPS.map((m,i)=>[m.name,i]),'smap');
+ if(sel.mode==='survie')o.innerHTML='Survis aux vagues de bots très agressifs. <b style="color:#7dff9a">+50 PV à chaque kill</b><br>Carte '+chips(MAPS.map((m,i)=>[m.name,i]),'smap')+'<br>'+lo();
  else if(sel.mode==='duel')o.innerHTML='Carte '+chips(MAPS.slice(1).map((m,i)=>[m.name,i+1]),'map')+'<br>Premier à '+chips([['3',3],['5',5],['10',10]],'target')+'<br>Carte aléatoire à chaque mort '+chips([['Non',0],['Oui',1]],'rnd')+'<br>IA '+chips([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl')+'<br>'+lo();
  else if(sel.mode==='online')o.innerHTML=netUI();
  else if(sel.mode==='ffa')o.innerHTML=ffaUI();
