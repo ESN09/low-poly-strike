@@ -276,7 +276,7 @@ const asphT=tex(x=>{x.fillStyle='#5b606c';x.fillRect(0,0,128,128);for(let i=0;i<
 const concT=tex(x=>{x.fillStyle='#c9ccd2';x.fillRect(0,0,128,128);x.strokeStyle='rgba(0,0,0,.2)';x.lineWidth=3;x.strokeRect(0,0,128,128);for(let i=0;i<220;i++){x.fillStyle='rgba(0,0,0,.06)';x.fillRect(Math.random()*128|0,Math.random()*128|0,3,3)}},1);
 const woodT=tex(x=>{x.fillStyle='#b98a55';x.fillRect(0,0,128,128);x.fillStyle='rgba(60,30,0,.28)';for(let i=0;i<128;i+=21)x.fillRect(i,0,2,128);x.fillStyle='rgba(255,230,180,.12)';for(let i=10;i<128;i+=21)x.fillRect(i,0,5,128)},1);
 const metalT=tex(x=>{x.fillStyle='#fff';x.fillRect(0,0,128,128);x.fillStyle='rgba(0,0,0,.22)';for(let i=0;i<128;i+=12)x.fillRect(i,0,4,128);x.fillStyle='rgba(255,255,255,.2)';for(let i=4;i<128;i+=12)x.fillRect(i,0,2,128)},1);
-metalT.userData.metal=1;
+metalT.isMetal=true;
 const dirtT=tex(x=>{x.fillStyle='#a67c52';x.fillRect(0,0,128,128);for(let i=0;i<700;i++){x.fillStyle=['#94693f','#b98d60','#8a6038'][i%3];x.fillRect(Math.random()*128|0,Math.random()*128|0,3,3)}},18);
 const dockT=tex(x=>{x.fillStyle='#9aa0aa';x.fillRect(0,0,128,128);x.strokeStyle='rgba(0,0,0,.25)';x.lineWidth=3;x.strokeRect(0,0,128,128);for(let i=0;i<300;i++){x.fillStyle='rgba(0,0,0,.07)';x.fillRect(Math.random()*128|0,Math.random()*128|0,3,3)}},14);
 
@@ -290,7 +290,7 @@ const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:w,bevelEnabled:false})
 m.position.set(xa,y0,zc-w/2);m.scale.x=dir;m.castShadow=m.receiveShadow=true;scene.add(m);worldMeshes.push(m)}
 /* ---------- décors détaillés ---------- */
 const _mc={};
-function TM(t,tile=2.5,col=0xffffff){const k=t.uuid+'|'+tile+'|'+col;if(!_mc[k]){const c=t.clone();c.needsUpdate=true;c.repeat.set(1,1);let m;if(REAL&&t.userData&&t.userData.metal){try{m=new THREE.MeshStandardMaterial({color:col,map:c,roughness:.5,metalness:.1})}catch(e){}}if(!m)m=new THREE.MeshLambertMaterial({color:col,map:c});m.userData.uvs=tile;_mc[k]=m}return _mc[k]}
+function TM(t,tile=2.5,col=0xffffff){const k=t.uuid+'|'+tile+'|'+col;if(!_mc[k]){const c=t.clone();c.needsUpdate=true;c.repeat.set(1,1);let m;if(REAL&&t.isMetal){try{m=new THREE.MeshStandardMaterial({color:col,map:c,roughness:.5,metalness:.1})}catch(e){}}if(!m)m=new THREE.MeshLambertMaterial({color:col,map:c});m.userData.uvs=tile;_mc[k]=m}return _mc[k]}
 const GLASS=new THREE.MeshLambertMaterial({color:0x9fd8ff,transparent:true,opacity:.4}),WHITE=L(0xffffff),DARK=L(0x2a3a4a),TIRE=L(0x1b1b1f);
 const S3=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;scene.add(m);worldMeshes.push(m);return m};
 const dec=(sx,sy,sz,mat,x,y,z,cs=false)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);m.position.set(x,y,z);m.castShadow=cs;m.receiveShadow=true;scene.add(m);return m};
