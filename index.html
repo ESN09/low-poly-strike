@@ -1191,11 +1191,13 @@ const sbar=(l,v)=>'<div class="sb"><span>'+l+'</span><i><u style="width:'+Math.r
 function loadout(){const a=CLS[sel.p],b=CLS[sel.s],at=ATT.find(x=>x[1]===sel.att)||ATT[0];
  let h='<div class="ld"><div class="chip ldh" data-k="ldo" data-v="'+(sel.ldo?0:1)+'"><span>⚔ <b>'+a.n+'</b> + <b>'+b.n+'</b></span><span class="ats">'+(sel.att?'🔧 '+at[0]:'')+(sel.pcl?' · '+PCL[sel.pcl][0]:'')+'</span><span>'+(sel.ldo?'▲ FERMER':'▼ MODIFIER')+'</span></div>';
  if(sel.ldo){h+='<div class="seg sl">'+chips([['1 · Principale',0],['2 · Secondaire',1]],'slot')+'</div><div class="wg">';
-  CLS.forEach((w,i)=>{const B=w.b||w;h+='<div class="chip wt'+(i===sel.p||i===sel.s?' on':'')+'" data-k="'+(sel.slot?'s':'p')+'" data-v="'+i+'"><div class="wi">'+WI[i]+'</div><b>'+CN[i][0]+'</b><small>'+w.n+(mast(i)?' · M'+mast(i):'')+'</small>'+(i===sel.p?'<em>1</em>':'')+(i===sel.s?'<em class="e2">2</em>':'')+sbar('DÉG',B.dmg*B.pel/130)+sbar('CAD',1/B.rate/14)+sbar('PRÉC',1-B.spread*12)+'</div>'});
-  h+='</div>'+orow('Accessoire',seg(ATT,'att'))+orow('Classe',seg(PCL,'pcl'))}
+  CLS.forEach((w,i)=>{const B=w.b||w;h+='<div class="chip wt'+(i===sel.p||i===sel.s?' on':'')+'" data-k="'+(sel.slot?'s':'p')+'" data-v="'+i+'"><div class="wi">'+WI[i]+'</div><b>'+CN[i][0]+'</b><small>'+w.n+(mast(i)?' · M'+mast(i):'')+'</small>'+(i===sel.p?'<em>1</em>':'')+(i===sel.s?'<em class="e2">2</em>':'')+sbar('DÉG',B.dmg*w.pel/130)+sbar('CAD',1/w.rate/14)+sbar('PRÉC',1-B.spread*12)+'</div>'});
+  h+='</div>'+orow('Accessoire',seg(ATT,'att'))+pclRow()}
  return h+'</div>'}
 const lo=loadout;
-function chips(arr,key){return arr.map(([l,v])=>`<span class="chip${sel[key]===v?' on':''}" data-k="${key}" data-v="${v}">${l}</span>`).join('')}
+const PCD=['Aucun bonus.','+12 % de vitesse · ennemis visibles plus longtemps sur la minimap','40 de bouclier au départ · −15 % de dégâts reçus','+12 % de dégâts infligés','+20 PV à chaque kill'];
+function chips(arr,key){return arr.map(([l,v])=>`<span class="chip${sel[key]===v?' on':''}" data-k="${key}" data-v="${v}"${key==='pcl'?' title="'+PCD[v]+'"':''}>${l}</span>`).join('')}
+function pclRow(){return orow('Classe',seg(PCL,'pcl'))+'<div style="font-size:14px;color:#d9ccff;margin:-2px 0 6px 4px">'+PCD[sel.pcl|0]+'</div>'}
 /* ---------- classement ---------- */
 const LBS={d:null,t:0,p:0};
 function lbDraw(){const d=LBS.d,me=(PR.name||'').toLowerCase(),L=lvOf(PR.xp).lv;
@@ -1211,9 +1213,9 @@ try{const q=JSON.parse(localStorage.getItem('lps_sel')||'{}');['p','s','att','sm
 function renderOpt(){renderOpt0();if($('pv'))drawPV(sel.mode==='survie'?sel.smap:sel.map)}
 const MAPL=()=>MAPS.slice(1).map((m,i)=>[m.name,i+1]);
 function renderOpt0(){const o=$('opt');
- if(sel.mode==='survie')o.innerHTML='<div class="md">🌊 Survis aux vagues · <b style="color:#7dff9a">+50 PV par kill</b> · boss toutes les 5 vagues</div><div class="og">'+mapPick('smap',MAPS.map((m,i)=>[m.name,i]))+'<div class="oc">'+orow('Difficulté',seg([['Facile',0],['Normal',1],['Difficile',2]],'sdiff'))+orow('Variante',seg([['Classique',0],['Zombies',1]],'zb'))+orow('Événements aléatoires',seg([['Oui',1],['Non',0]],'ev'))+'</div></div>'+(sel.zb?'<div class="md">🧟 Zombies : gagne des points en touchant et en tuant, puis achète armes, munitions et soins sur les bornes colorées avec la touche E.</div>'+orow('Classe',seg(PCL,'pcl')):loadout());
+ if(sel.mode==='survie')o.innerHTML='<div class="md">🌊 Survis aux vagues · <b style="color:#7dff9a">+50 PV par kill</b> · boss toutes les 5 vagues</div><div class="og">'+mapPick('smap',MAPS.map((m,i)=>[m.name,i]))+'<div class="oc">'+orow('Difficulté',seg([['Facile',0],['Normal',1],['Difficile',2]],'sdiff'))+orow('Variante',seg([['Classique',0],['Zombies',1]],'zb'))+orow('Événements aléatoires',seg([['Oui',1],['Non',0]],'ev'))+'</div></div>'+(sel.zb?'<div class="md">🧟 Zombies : gagne des points en touchant et en tuant, puis achète armes, munitions et soins sur les bornes colorées avec la touche E.</div>'+pclRow():loadout());
  else if(sel.mode==='duel')o.innerHTML='<div class="md">🎯 Duel contre l’IA</div><div class="og">'+mapPick('map',MAPL())+'<div class="oc">'+orow('Premier à',seg([['3 kills',3],['5 kills',5],['10 kills',10]],'target'))+orow('Niveau de l’IA',seg([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl'))+orow('Carte aléatoire à chaque mort',seg([['Non',0],['Oui',1]],'rnd'))+orow('Événements aléatoires',seg([['Oui',1],['Non',0]],'ev'))+'</div></div>'+loadout();
- else if(sel.mode==='gg')o.innerHTML='<div class="md">🔫 Gun Game · chaque kill change ton arme · mourir te fait reculer d’une arme</div><div class="og">'+mapPick('map',MAPL())+'<div class="oc">'+orow('Niveau de l’IA',seg([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl'))+orow('Événements aléatoires',seg([['Oui',1],['Non',0]],'ev'))+orow('Accessoire',seg(ATT,'att'))+orow('Classe',seg(PCL,'pcl'))+'</div></div>';
+ else if(sel.mode==='gg')o.innerHTML='<div class="md">🔫 Gun Game · chaque kill change ton arme · mourir te fait reculer d’une arme</div><div class="og">'+mapPick('map',MAPL())+'<div class="oc">'+orow('Niveau de l’IA',seg([['Facile',4],['Normal',6],['Difficile',8],['Pro',10]],'lvl'))+orow('Événements aléatoires',seg([['Oui',1],['Non',0]],'ev'))+orow('Accessoire',seg(ATT,'att'))+pclRow()+'</div></div>';
  else if(sel.mode==='online')o.innerHTML=netUI();
  else if(sel.mode==='ffa')o.innerHTML=ffaUI();
  else{const n=rankIdx();o.innerHTML=`<div class="md"><span id="rk" style="color:${RK[n][1]}">${RK[n][0]}</span><br>${RP} RP · prochain rang à ${n<5?(n+1)*100+' RP':'—'}<br>Match en 7 kills · carte aléatoire · IA adaptée à ton rang</div>`+loadout()}}
