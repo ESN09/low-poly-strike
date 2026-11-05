@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Low-Poly Strike</title>
+<title>Bismillah c'est les ténèbres</title>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
 <style>
 :root{--y:#ffe14d;--b:#2ec4ff;--p:#8a3ffc;--bg:#120a2e;--r:#ff3b6b}
@@ -111,7 +111,8 @@ b,strong{font-weight:400}input,button{font-family:inherit}
 #pot{position:absolute;left:24px;bottom:96px;font-size:20px;color:var(--b);text-shadow:0 2px 0 #000}
 #dr{position:absolute;left:50%;bottom:130px;width:200px;height:12px;margin-left:-100px;border:3px solid #fff;border-radius:8px;background:#0009;overflow:hidden;opacity:0}
 #dr i{display:block;height:100%;width:0;background:var(--b)}
-h1{margin:0;font-weight:400;font-size:clamp(36px,7vw,64px);line-height:.95;color:var(--y);text-shadow:0 6px 0 var(--p),0 12px 0 #000a;transform:rotate(-3deg)}
+h1 .h1s{font-size:.62em;display:inline-block;margin-top:2px}
+h1{margin:0;font-weight:400;font-size:clamp(34px,6.4vw,60px);line-height:.95;color:var(--y);text-shadow:0 6px 0 var(--p),0 12px 0 #000a;transform:rotate(-3deg)}
 .btn{display:inline-block;margin-top:34px;padding:16px 38px;font-size:30px;background:var(--y);color:#1b0b4d;border-radius:14px;border:4px solid #fff;box-shadow:0 7px 0 var(--p)}
 .ov:hover .btn{transform:translateY(2px);box-shadow:0 5px 0 var(--p)}
 .keys{margin-top:26px;font-size:18px;line-height:1.7;color:#d9ccff}
@@ -170,7 +171,7 @@ h1{margin:0;font-weight:400;font-size:clamp(36px,7vw,64px);line-height:.95;color
   <div id="wp"><div id="wn">AR-X7</div><div id="am">30<span> / 120</span></div></div>
   <div id="vig"></div><div id="scope"></div><div class="ch" id="ch"><i></i><i></i><i></i><i></i></div><div id="hm"></div><div id="dmg"></div>
 </div>
-<div class="ov" id="st"><div class="lb" id="lbL"></div><div class="lb" id="lbR"></div><div class="panel"><h1>LOW-POLY<br>STRIKE</h1>
+<div class="ov" id="st"><div class="lb" id="lbL"></div><div class="lb" id="lbR"></div><div class="panel"><h1>BISMILLAH<br><span class="h1s">C'EST LES TÉNÈBRES</span></h1>
 <div id="prof"><input id="pname" maxlength="14" placeholder="Pseudo" autocomplete="off"><div style="flex:1"><div id="plv"></div><div id="xpb"><i></i></div></div></div><div id="evb"></div><div id="chl"></div>
 <div class="keys">Touches modifiables dans les Options</div>
 <div id="modes"><div class="mb on" data-m="survie"><i>🌊</i><b>SURVIE</b><small>Vagues d’ennemis</small></div><div class="mb" data-m="duel"><i>🎯</i><b>DUEL 1v1</b><small>Contre l’IA</small></div><div class="mb" data-m="ranked"><i>🏆</i><b>RANKED</b><small>Grimpe les rangs</small></div><div class="mb" data-m="gg"><i>🔫</i><b>GUN GAME</b><small>1 kill = 1 arme</small></div><div class="mb" data-m="online"><i>🌐</i><b>EN LIGNE</b><small>1v1 contre un ami</small></div><div class="mb" data-m="ffa"><i>👥</i><b>MÊLÉE</b><small>2 à 8 joueurs en ligne</small></div></div><div id="opt"></div>
@@ -257,12 +258,18 @@ function waterTick(t){for(let i=0;i<WAT.length;i++){const w=WAT[i];if(w.m.visibl
 let sunSpr=null;
 try{if(REAL){const sc=document.createElement('canvas');sc.width=sc.height=128;const x=sc.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.1,'rgba(255,246,215,.95)');g.addColorStop(.28,'rgba(255,222,160,.32)');g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(0,0,128,128);
  sunSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(sc),depthWrite:false,fog:false,transparent:true,opacity:.8}));sunSpr.scale.set(38,38,1);sunSpr.frustumCulled=false;sunSpr.visible=false;scene.add(sunSpr)}}catch(e){sunSpr=null;ERR('Soleil : '+e.message)}
-function sunTick(){if(!sunSpr)return;if((S.gfx|0)<1){sunSpr.visible=false;return}sunSpr.visible=envName!=='pluie';sunSpr.material.color.setHex(ENVS[envName].sun[0]);const p=sun.position,d=Math.hypot(p.x,p.y,p.z)||1;sunSpr.position.set(camera.position.x+p.x/d*150,camera.position.y+p.y/d*150,camera.position.z+p.z/d*150)}
+let starP=null;
+try{if(REAL){const N=260,pos=new Float32Array(N*3);for(let i=0;i<N;i++){const th=Math.random()*6.283,ph=Math.acos(Math.random()*.9+.1),r=170;pos[i*3]=r*Math.sin(ph)*Math.cos(th);pos[i*3+1]=r*Math.cos(ph);pos[i*3+2]=r*Math.sin(ph)*Math.sin(th)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));starP=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:2,sizeAttenuation:false,transparent:true,opacity:.9,fog:false,depthWrite:false}));starP.frustumCulled=false;starP.visible=false;scene.add(starP)}}catch(e){starP=null;ERR('Étoiles : '+e.message)}
+let haloM=null;
+function halo(x,y,z,sc){try{if(!REAL)return;if(!haloM){const c=document.createElement('canvas');c.width=c.height=64;const q=c.getContext('2d'),g=q.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,244,190,.95)');g.addColorStop(.25,'rgba(255,225,150,.38)');g.addColorStop(1,'rgba(255,210,120,0)');q.fillStyle=g;q.fillRect(0,0,64,64);haloM=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false,fog:false,transparent:true,opacity:.6})}
+ const sp=new THREE.Sprite(haloM);sp.position.set(x,y,z);sp.scale.set(sc||2.4,sc||2.4,1);scene.add(sp)}catch(e){}}
+function sunTick(){try{if(starP){starP.visible=envName==='nuit'&&(S.gfx|0)>0;if(starP.visible)starP.position.copy(camera.position)}}catch(e){}if(!sunSpr)return;if((S.gfx|0)<1){sunSpr.visible=false;return}sunSpr.visible=envName!=='pluie';sunSpr.material.color.setHex(ENVS[envName].sun[0]);const p=sun.position,d=Math.hypot(p.x,p.y,p.z)||1;sunSpr.position.set(camera.position.x+p.x/d*150,camera.position.y+p.y/d*150,camera.position.z+p.z/d*150)}
 function setEnv(n){const E=ENVS[n];hemiBase=E.hemi[2]*(REAL?.85:1);ambSet(n);envName=n;setSky(E.sky);scene.fog.color.setHex(E.fog);scene.fog.near=E.near;ENVC.far=E.far;hemi.color.setHex(E.hemi[0]);hemi.groundColor.setHex(E.hemi[1]);hemi.intensity=hemiBase;sun.color.setHex(E.sun[0]);sun.intensity=E.sun[1];sun.position.set(...E.sun[2]);cloudM.forEach(m=>m.color.setHex(E.cloud));rainL.visible=!!E.rain;applyFog()}
 
 
 /* ---------- textures procédurales ---------- */
-function tex(fn,rep){const c=document.createElement('canvas');c.width=c.height=128;fn(c.getContext('2d'));if(REAL){const x=c.getContext('2d');for(let i=0;i<300;i++){x.fillStyle=i%2?'rgba(255,255,255,.06)':'rgba(0,0,0,.09)';x.fillRect(Math.random()*128|0,Math.random()*128|0,1+(i%4===0),1)}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.magFilter=THREE.NearestFilter;return t}
+function tex(fn,rep){const c=document.createElement('canvas');c.width=c.height=128;fn(c.getContext('2d'));if(REAL){const x=c.getContext('2d');for(let i=0;i<300;i++){x.fillStyle=i%2?'rgba(255,255,255,.06)':'rgba(0,0,0,.09)';x.fillRect(Math.random()*128|0,Math.random()*128|0,1+(i%4===0),1)}if(rep<=6){const g=x.createLinearGradient(0,0,0,128);g.addColorStop(0,'rgba(255,255,255,.06)');g.addColorStop(.7,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.2)');x.fillStyle=g;x.fillRect(0,0,128,128)}}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.magFilter=THREE.NearestFilter;return t}
 const floorT=tex(x=>{x.fillStyle='#63d052';x.fillRect(0,0,128,128);for(let i=0;i<650;i++){x.fillStyle=['#56c046','#70dc5e','#5bc84b'][i%3];x.fillRect(Math.random()*128|0,Math.random()*128|0,2,3)}x.fillStyle='rgba(0,0,0,.05)';x.fillRect(0,0,64,64);x.fillRect(64,64,64,64)},20);
 const crateT=tex(x=>{x.fillStyle='#e8a33d';x.fillRect(0,0,128,128);x.strokeStyle='#8a4b12';x.lineWidth=10;x.strokeRect(5,5,118,118);x.lineWidth=7;x.beginPath();x.moveTo(8,8);x.lineTo(120,120);x.moveTo(120,8);x.lineTo(8,120);x.stroke()},1);
 const wallT=tex(x=>{x.fillStyle='#8a3ffc';x.fillRect(0,0,128,128);x.fillStyle='#2ec4ff';for(let i=0;i<128;i+=32)x.fillRect(i,0,16,128)},6);
@@ -326,7 +333,7 @@ function truck(x,z,c,alongZ=false){const g=new THREE.Group();
  gadd(g,new THREE.BoxGeometry(2.6,2.3,2.6),L(c),-3.9,1.6,0);gadd(g,new THREE.BoxGeometry(.1,.8,2.3),DARK,-5.2,2.2,0);gadd(g,new THREE.BoxGeometry(7.4,2.7,2.7),TM(metalT,1.8,0xf3f3f3),1.2,1.95,0);
  wheels(g,[[-3.9,-1.2],[-3.9,1.2],[2.5,-1.2],[2.5,1.2],[.9,-1.2],[.9,1.2]],.5);carG(g,x,z,alongZ);col_(x,z,alongZ?1.45:5.2,alongZ?5.2:1.45,3.2)}
 function pole(x,z){S3(new THREE.CylinderGeometry(.14,.2,9,6),TM(woodT,2,0x6b4a2a),x,4.5,z);dec(3,.14,.14,L(0x6b4a2a),x,8.4,z);col_(x,z,.3,.3,9)}
-function lamp(x,z,h=4.2){S3(new THREE.CylinderGeometry(.07,.1,h,6),L(0x3a3f4a),x,h/2,z);const m=new THREE.Mesh(new THREE.SphereGeometry(.24,8,6),new THREE.MeshBasicMaterial({color:0xfff4b0}));m.position.set(x,h+.15,z);scene.add(m);col_(x,z,.2,.2,9)}
+function lamp(x,z,h=4.2){S3(new THREE.CylinderGeometry(.07,.1,h,6),L(0x3a3f4a),x,h/2,z);const m=new THREE.Mesh(new THREE.SphereGeometry(.24,8,6),new THREE.MeshBasicMaterial({color:0xfff4b0}));m.position.set(x,h+.15,z);scene.add(m);halo(x,h+.15,z);col_(x,z,.2,.2,9)}
 function barrel(x,z,c=0xe04040){S3(new THREE.CylinderGeometry(.42,.42,1.1,10),L(c),x,.55,z);col_(x,z,.42,.42,1.1)}
 function table(x,z,alongX=true){addBox(x,z,alongX?2.2:.9,alongX?.9:2.2,.85,TM(woodT,1.5,0xc89a64),0);[-1,1].forEach(s=>alongX?addBox(x,z+s*.85,2.2,.4,.45,TM(woodT,1.5,0xa87c4a)):addBox(x+s*.85,z,.4,2.2,.45,TM(woodT,1.5,0xa87c4a)))}
 function sandbags(cx,cz,sx,sz){addBox(cx,cz,sx,sz,1.15,TM(sidingT,.9,0xc2b27a))}
@@ -588,7 +595,7 @@ function makeEnemy(i){
  add(new THREE.BoxGeometry(.62,.16,.56),0x3a4a3a,0,2.08,0);add(new THREE.BoxGeometry(.4,.07,.1),0xff3b6b,0,1.88,.25);
  e.legL=add(new THREE.BoxGeometry(.28,.7,.3),0x2b2d42,-.18,.35,0);e.legR=add(new THREE.BoxGeometry(.28,.7,.3),0x2b2d42,.18,.35,0);
  e.armL=add(new THREE.BoxGeometry(.2,.7,.2),col,-.46,1.2,.1);e.gun=add(new THREE.BoxGeometry(.2,.2,.7),0x222233,.4,1.25,.4);
- try{add(new THREE.BoxGeometry(.5,.46,.12),0x3b4538,0,1.3,.24);add(new THREE.BoxGeometry(.46,.52,.16),0x3b4538,0,1.25,-.28);add(new THREE.BoxGeometry(.78,.1,.48),0x1f2a1f,0,.82,0);add(new THREE.BoxGeometry(.9,.12,.5),0x4a5640,0,1.58,0);
+ try{add(new THREE.BoxGeometry(.5,.46,.12),0x3b4538,0,1.3,.24);add(new THREE.BoxGeometry(.46,.52,.16),0x3b4538,0,1.25,-.28);add(new THREE.BoxGeometry(.78,.1,.48),0x1f2a1f,0,.82,0);add(new THREE.BoxGeometry(.9,.12,.5),0x4a5640,0,1.58,0);add(new THREE.BoxGeometry(.2,.55,.2),col,.42,1.12,.2);add(new THREE.BoxGeometry(.14,.14,.14),0xffcf9f,.42,.86,.3);add(new THREE.BoxGeometry(.14,.14,.14),0xffcf9f,.4,1.2,.55);
  [e.legL,e.legR].forEach(lg=>{const m=new THREE.Mesh(new THREE.BoxGeometry(.3,.14,.4),L(0x17181f));m.position.set(0,-.3,.05);m.castShadow=true;m.userData.e=e;lg.add(m)})}catch(er){}
  {const hm_=new THREE.MeshBasicMaterial({visible:false}),hb=(geo,y,head)=>{const m=new THREE.Mesh(geo,hm_);m.position.y=y;m.userData.e=e;m.userData.head=head;e.g.add(m);return m};e.hb=[hb(new THREE.BoxGeometry(.9,1.62,.75),.81,false),hb(new THREE.BoxGeometry(.66,.62,.66),1.9,true)]}
  {const xg=(col,parts)=>{const g=new THREE.Group();for(const[w,h,d,c,x,y,z]of parts){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),L(c));m.position.set(x,y,z);g.add(m)}g.visible=false;e.g.add(g);return g};
