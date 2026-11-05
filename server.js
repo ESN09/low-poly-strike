@@ -13,15 +13,30 @@ try { LB = JSON.parse(fs.readFileSync(LBF, 'utf8')) || {}; } catch (e) { LB = {}
 let lbDirty = false;
 setInterval(() => { if (lbDirty) { lbDirty = false; try { fs.writeFileSync(LBF, JSON.stringify(LB)); } catch (e) {} } }, 15000).unref();
 function lbTop(key) { return Object.values(LB).sort((a, b) => b[key] - a[key] || b.l - a.l).filter(e => e[key] > 0).slice(0, 10).map(e => ({ n: e.n, w: e.w, l: e.l })); }
+const lbRate = new Map(), lbNew = new Map();   // limites par IP
+function ipOf(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
 function lbPost(req, res) {
+  const ip = ipOf(req), now = Date.now();
+  if (now - (lbRate.get(ip) || 0) < 4000) { res.writeHead(429, { 'Content-Type': 'application/json' }); return res.end('{}'); }
+  lbRate.set(ip, now);
+  if (lbRate.size > 5000) lbRate.clear();
   let body = '';
   req.on('data', c => { body += c; if (body.length > 500) req.destroy(); });
   req.on('end', () => {
     try {
       const m = JSON.parse(body);
       const n = String(m.n || '').replace(/[<>&"]/g, '').trim().slice(0, 14), w = Math.floor(+m.w), l = Math.floor(+m.l);
-      if (n && w >= 0 && w <= 500 && l >= 1 && l <= 200) {
-        const k = n.toLowerCase(), e = LB[k] || { n, w: 0, l: 1 };
+      const k0 = n.toLowerCase(), old = LB[k0];
+      // anti-triche simple : plafonds, progression limitée par envoi, 5 nouveaux pseudos max par heure et par IP
+      let ok = n && w >= 0 && w <= 120 && l >= 1 && l <= 80;
+      if (ok && old && (w > old.w + 25 || l > old.l + 8)) ok = false;
+      if (ok && !old) {
+        const c = lbNew.get(ip) || { t: now, n: 0 };
+        if (now - c.t > 3600000) { c.t = now; c.n = 0; }
+        if (c.n >= 5 || w > 80 || l > 60) ok = false; else { c.n++; lbNew.set(ip, c); }
+      }
+      if (ok) {
+        const k = k0, e = LB[k] || { n, w: 0, l: 1 };
         e.n = n; e.w = Math.max(e.w, w); e.l = Math.max(e.l, l); LB[k] = e; lbDirty = true;
         if (Object.keys(LB).length > 2000) { const keep = Object.values(LB).sort((a, b) => b.w + b.l - a.w - a.l).slice(0, 1000); LB = {}; keep.forEach(x => LB[x.n.toLowerCase()] = x); }
       }
@@ -30,7 +45,39 @@ function lbPost(req, res) {
   });
 }
 
+// profils en ligne (code secret de 8 caractères -> données de progression)
+const PROFF = path.join(process.env.LB_DIR || __dirname, 'profiles.json');
+let PROF = {};
+try { PROF = JSON.parse(fs.readFileSync(PROFF, 'utf8')) || {}; } catch (e) { PROF = {}; }
+let profDirty = false;
+setInterval(() => { if (profDirty) { profDirty = false; try { fs.writeFileSync(PROFF, JSON.stringify(PROF)); } catch (e) {} } }, 20000).unref();
+function profile(req, res, u) {
+  const code = String(u.searchParams.get('c') || '').toUpperCase();
+  const J = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
+  if (!/^[A-Z0-9]{6,8}$/.test(code)) return J(400, {});
+  if (req.method !== 'POST') return PROF[code] ? J(200, PROF[code]) : J(404, {});
+  const ip = ipOf(req), now = Date.now();
+  if (now - (lbRate.get('p' + ip) || 0) < 3000) return J(429, {});
+  lbRate.set('p' + ip, now);
+  let body = '';
+  req.on('data', c => { body += c; if (body.length > 3000) req.destroy(); });
+  req.on('end', () => {
+    try {
+      const m = JSON.parse(body);
+      if (typeof m.xp !== 'number' || !Array.isArray(m.own) || !Array.isArray(m.wk)) return J(400, {});
+      if (!PROF[code] && Object.keys(PROF).length >= 3000) return J(507, {});
+      PROF[code] = m; profDirty = true; J(200, { ok: 1 });
+    } catch (e) { J(400, {}); }
+  });
+}
+
 const server = http.createServer((req, res) => {
+  if (req.url.startsWith('/profile')) return profile(req, res, new URL(req.url, 'http://x'));
+  if (req.url === '/rooms') {
+    const L = [];
+    for (const [c, r] of frooms) if (r.pub && !r.started && r.peers.size < MAXP) L.push({ c, n: r.peers.size, h: r.hn || '' });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(L.slice(0, 12)));
+  }
   if (req.url === '/ping') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('lps'); }
   if (req.url === '/lb') {
     if (req.method === 'POST') return lbPost(req, res);
@@ -131,14 +178,14 @@ function fleave(peer) {
   for (const p of r.peers.values()) send(p, JSON.stringify({ sys: 'left', id: peer.id }));
   if (!r.peers.size) frooms.delete(peer.room);
 }
-function ffa(sock, code, role) {
+function ffa(sock, code, role, pub) {
   const peer = { sock, buf: Buffer.alloc(0), room: code, gone: false, id: -1 };
   const refuse = s => { send(peer, JSON.stringify({ sys: s })); peer.gone = true; sock.end(); };
   if (!code) return refuse('nf');
   let r = frooms.get(code);
   if (role === 'host') {
     if (r) return refuse('taken');
-    r = { peers: new Map(), host: 0 };
+    r = { peers: new Map(), host: 0, pub: !!pub, started: false, hn: '' };
     frooms.set(code, r);
   } else {
     if (!r) return refuse('nf');
@@ -153,6 +200,10 @@ function ffa(sock, code, role) {
   for (const p of r.peers.values()) if (p !== peer) send(p, JSON.stringify({ sys: 'join', id }));
   attach(peer, txt => {
     if (txt.length > 4096) return;
+    if (peer.id === r.host) {
+      if (txt.startsWith('{"t":"cfg"')) r.started = true;
+      else if (txt.startsWith('{"t":"nm"')) { try { r.hn = String(JSON.parse(txt).n || '').replace(/[<>&"]/g, '').slice(0, 14); } catch (e) {} }
+    }
     for (const p of r.peers.values()) if (p !== peer) send(p, txt);
   }, () => fleave(peer));
 }
@@ -165,7 +216,7 @@ server.on('upgrade', (req, sock) => {
   sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   sock.setNoDelay(true);
   const code = (u.searchParams.get('room') || '').toUpperCase().slice(0, 12), role = u.searchParams.get('role');
-  if (u.pathname === '/ffa') ffa(sock, code, role); else duel(sock, code, role);
+  if (u.pathname === '/ffa') ffa(sock, code, role, u.searchParams.get('pub') === '1'); else duel(sock, code, role);
 });
 
 server.listen(PORT, '0.0.0.0', () => {
