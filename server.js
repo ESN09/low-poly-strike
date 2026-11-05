@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
   if (req.url.startsWith('/profile')) return profile(req, res, new URL(req.url, 'http://x'));
   if (req.url === '/rooms') {
     const L = [];
-    for (const [c, r] of frooms) if (r.pub && !r.started && r.peers.size < MAXP) L.push({ c, n: r.peers.size, h: r.hn || '' });
+    for (const [c, r] of frooms) if (r.pub && !r.started && r.peers.size < MAXP) L.push({ c, n: r.peers.size, h: r.hn || '', l: r.hl || 0 });
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(L.slice(0, 12)));
   }
   if (req.url === '/ping') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('lps'); }
@@ -148,6 +148,45 @@ function leave(peer) {
   }
   try { peer.sock.destroy(); } catch (e) {}
 }
+
+/* ---------- filtre de vraisemblance (anti-triche basique) ----------
+   Le serveur ne simule pas la partie : il ne peut donc pas vérifier un tir. Il écarte seulement
+   les messages absurdes : flood, identité usurpée, ordres réservés à l'hôte, dégâts hors normes,
+   téléportations et positions hors de la carte. */
+function sane(peer, r, txt, duelMode) {
+  const now = Date.now();
+  peer.tk = Math.min(150, (peer.tk === undefined ? 150 : peer.tk) + (now - (peer.tt || now)) * 0.08); peer.tt = now;
+  if (peer.tk < 1) return false;
+  peer.tk -= 1;
+  const c = txt.charCodeAt(6);
+  const isH = txt.startsWith('{"t":"h"'), isS = txt.startsWith('{"t":"s"');
+  if (duelMode && !isH) return true;
+  let m;
+  try { m = JSON.parse(txt); } catch (e) { return false; }
+  if (!m || typeof m.t !== 'string') return false;
+  const t = m.t;
+  if (isH || t === 'h') {
+    const d = +m.d;
+    if (!(d > 0) || d > (duelMode ? 700 : 450) || !isFinite(d)) return false;
+    peer.db = Math.min(900, (peer.db === undefined ? 900 : peer.db) + (now - (peer.dt || now)) * 0.6); peer.dt = now;
+    if (peer.db < d) return false;
+    peer.db -= d;
+    if (!duelMode && (m.to === peer.id || !r.peers.has(m.to))) return false;
+    return true;
+  }
+  if (duelMode) return true;
+  if (['s', 'k', 'nm', 'tx', 'c', 'f', 'r', 'g', 'bx'].includes(t) && m.i !== peer.id) return false;
+  if ((t === 'cfg' || t === 'rs' || t === 'ob') && peer.id !== r.host) return false;
+  if (t === 's') {
+    const x = +m.x, y = +m.y, z = +m.z;
+    if (!isFinite(x + y + z) || Math.abs(x) > 100 || Math.abs(z) > 100 || y < -5 || y > 60) return false;
+    const dtS = Math.min(1, (now - (peer.ls || now)) / 1000), last = peer.lp;
+    peer.ls = now; peer.lp = [x, z];
+    if (last && m.rc === peer.lrc && Math.hypot(x - last[0], z - last[1]) > 38 * dtS + 2) { return false; }
+    peer.lrc = m.rc;
+  }
+  return true;
+}
 function duel(sock, code, role) {
   const peer = { sock, buf: Buffer.alloc(0), room: code, gone: false };
   if (!code) { send(peer, '{"sys":"nf"}'); peer.room = null; sock.end(); return; }
@@ -161,7 +200,7 @@ function duel(sock, code, role) {
     r.b = peer;
     send(r.a, '{"sys":"ready"}'); send(peer, '{"sys":"ready"}');
   }
-  attach(peer, txt => { const o = other(peer); if (o) send(o, txt); }, () => leave(peer));
+  attach(peer, txt => { if (!sane(peer, null, txt, true)) return; const o = other(peer); if (o) send(o, txt); }, () => leave(peer));
 }
 
 /* ---------- mêlée 2-8 joueurs ---------- */
@@ -202,9 +241,10 @@ function ffa(sock, code, role, pub) {
   for (const p of r.peers.values()) if (p !== peer) send(p, JSON.stringify({ sys: 'join', id }));
   attach(peer, txt => {
     if (txt.length > 4096) return;
+    if (!sane(peer, r, txt, false)) return;
     if (peer.id === r.host) {
       if (txt.startsWith('{"t":"cfg"')) r.started = true;
-      else if (txt.startsWith('{"t":"nm"')) { try { r.hn = String(JSON.parse(txt).n || '').replace(/[<>&"]/g, '').slice(0, 14); } catch (e) {} }
+      else if (txt.startsWith('{"t":"nm"')) { try { const j = JSON.parse(txt); r.hn = String(j.n || '').replace(/[<>&"]/g, '').slice(0, 14); r.hl = Math.max(1, Math.min(999, j.lv | 0)); } catch (e) {} }
     }
     for (const p of r.peers.values()) if (p !== peer) send(p, txt);
   }, () => fleave(peer));
