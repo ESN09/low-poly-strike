@@ -305,7 +305,8 @@ function crate(x,z,s=1.6,h=1.5){addBox(x,z,s,s,h,crateM)}
 function cone(x,z){S3(new THREE.ConeGeometry(.25,.7,8),L(0xff7b00),x,.35,z);col_(x,z,.25,.25,.7)}
 function mailbox(x,z){dec(.12,1,.12,L(0x6b4a2a),x,.5,z);dec(.5,.3,.3,L(0x2ec4ff),x,1.1,z,true);col_(x,z,.25,.2,1.25)}
 function gable(cx,cz,w,d,y,rh,col){const s=new THREE.Shape();s.moveTo(-d/2,0);s.lineTo(d/2,0);s.lineTo(0,rh);s.closePath();
- const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:w,bevelEnabled:false}),RF(col));m.rotation.y=-Math.PI/2;m.position.set(cx+w/2,y,cz);m.castShadow=m.receiveShadow=true;scene.add(m);worldMeshes.push(m)}
+ const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:w,bevelEnabled:false}),RF(col));m.rotation.y=-Math.PI/2;m.position.set(cx+w/2,y,cz);m.castShadow=m.receiveShadow=true;scene.add(m);worldMeshes.push(m);
+ for(let u0=-d/2;u0<d/2-.01;u0+=.5){const u1=Math.min(d/2,u0+.5),um=(u0+u1)/2;boxes.push({x0:cx-w/2,x1:cx+w/2,z0:cz+u0,z1:cz+u1,top:y+rh*(1-Math.abs(um)/(d/2)),b0:y})}}
 const _rt=roofT.clone();_rt.needsUpdate=true;_rt.repeat.set(.35,.35);const _rf={};
 function RF(c){return _rf[c]||(_rf[c]=new THREE.MeshLambertMaterial({color:c,map:_rt,side:THREE.DoubleSide}))}
 function wallSeg(ax,az,len,alongX,gaps,H,mat,t=.5){
