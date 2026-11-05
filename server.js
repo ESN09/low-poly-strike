@@ -12,7 +12,8 @@ let LB = {};
 try { LB = JSON.parse(fs.readFileSync(LBF, 'utf8')) || {}; } catch (e) { LB = {}; }
 let lbDirty = false;
 setInterval(() => { if (lbDirty) { lbDirty = false; try { fs.writeFileSync(LBF, JSON.stringify(LB)); } catch (e) {} } }, 15000).unref();
-function lbTop(key) { return Object.values(LB).sort((a, b) => b[key] - a[key] || b.l - a.l).filter(e => e[key] > 0).slice(0, 10).map(e => ({ n: e.n, w: e.w, l: e.l })); }
+function lbTop(key) { return Object.values(LB).sort((a, b) => (b[key] || 0) - (a[key] || 0) || b.l - a.l).filter(e => (e[key] || 0) > 0).slice(0, 10).map(e => ({ n: e.n, w: e.w, l: e.l, k: e.k || 0, wn: e.wn || 0 })); }
+const lbAll = () => ({ w: lbTop('w'), l: lbTop('l'), k: lbTop('k'), v: lbTop('wn') });
 const lbRate = new Map(), lbNew = new Map();   // limites par IP
 function ipOf(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
 function lbPost(req, res) {
@@ -25,23 +26,24 @@ function lbPost(req, res) {
   req.on('end', () => {
     try {
       const m = JSON.parse(body);
-      const n = String(m.n || '').replace(/[<>&"]/g, '').trim().slice(0, 14), w = Math.floor(+m.w), l = Math.floor(+m.l);
+      const n = String(m.n || '').replace(/[<>&"]/g, '').trim().slice(0, 14), w = Math.floor(+m.w), l = Math.floor(+m.l), k = Math.max(0, Math.floor(+m.k) || 0), wn = Math.max(0, Math.floor(+m.wn) || 0);
       const k0 = n.toLowerCase(), old = LB[k0];
       // anti-triche simple : plafonds, progression limitée par envoi, 5 nouveaux pseudos max par heure et par IP
       let ok = n && w >= 0 && w <= 120 && l >= 1 && l <= 80;
-      if (ok && old && (w > old.w + 25 || l > old.l + 8)) ok = false;
+      if (ok && old && (w > old.w + 25 || l > old.l + 8 || k > (old.k || 0) + 600 || wn > (old.wn || 0) + 15)) ok = false;
+      if (ok && (k > 100000 || wn > 5000)) ok = false;
       if (ok && !old) {
         const c = lbNew.get(ip) || { t: now, n: 0 };
         if (now - c.t > 3600000) { c.t = now; c.n = 0; }
-        if (c.n >= 5 || w > 80 || l > 60) ok = false; else { c.n++; lbNew.set(ip, c); }
+        if (c.n >= 5 || w > 80 || l > 60 || k > 8000 || wn > 800) ok = false; else { c.n++; lbNew.set(ip, c); }
       }
       if (ok) {
-        const k = k0, e = LB[k] || { n, w: 0, l: 1 };
-        e.n = n; e.w = Math.max(e.w, w); e.l = Math.max(e.l, l); LB[k] = e; lbDirty = true;
+        const key = k0, e = LB[key] || { n, w: 0, l: 1 };
+        e.n = n; e.w = Math.max(e.w, w); e.l = Math.max(e.l, l); e.k = Math.max(e.k || 0, k); e.wn = Math.max(e.wn || 0, wn); LB[key] = e; lbDirty = true;
         if (Object.keys(LB).length > 2000) { const keep = Object.values(LB).sort((a, b) => b.w + b.l - a.w - a.l).slice(0, 1000); LB = {}; keep.forEach(x => LB[x.n.toLowerCase()] = x); }
       }
     } catch (e) {}
-    res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ w: lbTop('w'), l: lbTop('l') }));
+    res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(lbAll()));
   });
 }
 
@@ -81,7 +83,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/ping') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('lps'); }
   if (req.url === '/lb') {
     if (req.method === 'POST') return lbPost(req, res);
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ w: lbTop('w'), l: lbTop('l') }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(lbAll()));
   }
   const f = ['index.html', 'low-poly-strike.html'].map(n => path.join(__dirname, n)).find(p => fs.existsSync(p));
   if (!f) { res.writeHead(404); return res.end('Le fichier du jeu est introuvable : mets index.html (ou low-poly-strike.html) dans le meme dossier que server.js'); }
