@@ -27,7 +27,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:
 .ch i:nth-child(3){width:9px;height:2px;top:-1px;left:calc(-9px - var(--g))}
 .ch i:nth-child(4){width:9px;height:2px;top:-1px;left:var(--g)}
 #spw{position:fixed;left:50%;bottom:19%;transform:translateX(-50%);padding:3px 12px;border-radius:12px;background:rgba(46,196,255,.22);border:1px solid #2ec4ff;color:#bfeaff;font:12px/1.4 sans-serif;letter-spacing:2px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:5}
-#shop{background:radial-gradient(circle at 50% 40%,#4a1fa8,#120a2e);z-index:30}#shbal{font-size:20px;margin:2px 0 6px}#shbal small{font-size:13px;opacity:.75}#shbal b{color:var(--y);font-weight:400}
+#shop{background:radial-gradient(circle at 50% 40%,#4a1fa8,#120a2e);z-index:30}#cta{position:sticky;bottom:0;z-index:6;margin:10px -160px -20px;padding:2px 20px 16px;background:linear-gradient(0deg,#120a2eee 62%,#120a2e00)}#cta{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;align-items:center}#cta .btn{margin:0;font-size:20px;padding:9px 20px;white-space:nowrap}#cta .btn.alt{margin-left:0}#cta #stb{font-size:24px}#quit{flex-basis:100%;margin-top:2px}
+#op{background:radial-gradient(circle at 50% 40%,#4a1fa8,#120a2e)}
+body:has(#st:not(.off)) .hud{opacity:0}
+#shbal{font-size:20px;margin:2px 0 6px}#shbal small{font-size:13px;opacity:.75}#shbal b{color:var(--y);font-weight:400}
 #shdeal{margin:4px auto 8px;font-size:15px;display:inline-block;padding:4px 14px;border-radius:14px;background:#ff3b6b33;border:2px solid #ff3b6b;cursor:pointer}
 #wtab{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 10px}#wtab span{padding:3px 12px;border:3px solid #fff8;border-radius:10px;background:#0006;cursor:pointer;font-size:17px}#wtab span.on{background:var(--y);color:#1b0b4d}
 #shbody{display:flex;gap:14px;align-items:flex-start;justify-content:center;flex-wrap:wrap;text-align:left}
@@ -176,6 +179,8 @@ h1{margin:0;font-weight:400;font-size:clamp(34px,6.4vw,60px);line-height:.95;col
 .btn.alt{background:#fff;margin-left:14px}
 #prst{cursor:pointer;color:var(--r);text-decoration:underline;font-size:15px;display:inline-block;margin-top:10px}
 #modes .mb{flex:1 1 0;min-width:0;max-width:none;padding:8px 3px}#modes{width:min(96vw,1000px);position:relative;left:50%;transform:translateX(-50%)}#modes .mb b{font-size:clamp(13px,1.35vw,21px);white-space:nowrap;letter-spacing:0}#modes .mb small{font-size:clamp(10px,.9vw,13px);line-height:1.15;display:block}#modes .mb i{font-size:clamp(16px,1.6vw,22px)}
+@media(max-width:700px){#modes{flex-wrap:wrap!important;width:100%!important;left:0!important;transform:none!important}#modes .mb{flex:1 1 28%!important;min-width:84px!important}#modes .mb b{white-space:normal!important}.panel,.panel>*{max-width:100%!important}#prof,#chl,#bow,#evb{max-width:calc(100vw - 40px)!important}#wkg{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))!important;min-width:0;max-width:100%!important}#shm{flex-basis:100%!important}#shop h1{font-size:28px!important}#cta .btn{font-size:17px!important;padding:8px 14px!important}#cta #stb{font-size:19px!important}}
+@media(max-width:1000px){#cta{margin:10px -20px -20px;padding:2px 20px 16px}}
 </style></head><body>
 <canvas id="c"></canvas><div id="vig"></div><div id="grn"></div><div id="evb"></div><div id="pk"></div><div id="tmh"></div><div id="hd"></div><div id="rp">▶ REPLAY · clique pour passer</div><div id="ab"></div><div id="zp"></div><div id="toast"></div><div id="chat"></div><div id="ct"></div><div id="sb"></div><div id="fps"></div>
 <div class="hud">
@@ -192,7 +197,7 @@ h1{margin:0;font-weight:400;font-size:clamp(34px,6.4vw,60px);line-height:.95;col
 <div class="keys">Touches modifiables dans les Options</div>
 <div id="modes"><div class="mb on" data-m="survie"><i>🌊</i><b>SURVIE</b><small>Vagues d’ennemis</small></div><div class="mb" data-m="duel"><i>🎯</i><b>DUEL 1v1</b><small>Contre l’IA</small></div><div class="mb" data-m="ranked"><i>🏆</i><b>RANKED</b><small>Grimpe les rangs</small></div><div class="mb" data-m="gg"><i>🔫</i><b>GUN GAME</b><small>1 kill = 1 arme</small></div><div class="mb" data-m="online"><i>🌐</i><b>EN LIGNE</b><small>1v1 contre un ami</small></div><div class="mb" data-m="ffa"><i>👥</i><b>MÊLÉE</b><small>2 à 8 joueurs en ligne</small></div><div class="mb" data-m="team"><i>⚔</i><b>ÉQUIPES</b><small>Avec bots alliés</small></div></div><div id="opt"></div>
 
-<div class="btn" id="stb">CLIQUER POUR JOUER</div><div class="btn alt" id="optb">⚙ OPTIONS</div><div class="btn alt" id="shpb">🛒 BOUTIQUE</div><div id="quit">Quitter le match</div></div></div>
+<div id="cta"><div class="btn" id="stb">CLIQUER POUR JOUER</div><div class="btn alt" id="optb">⚙ OPTIONS</div><div class="btn alt" id="shpb">🛒 BOUTIQUE</div><div id="quit">Quitter le match</div></div></div></div>
 <div class="ov off" id="shop"><div class="panel" style="width:100%;max-width:1000px"><h1 style="font-size:38px;margin-bottom:18px">BOUTIQUE D’ARMES</h1>
 <div id="shbal">Tes pièces : <b id="shco">0</b> 🪙 <small>· gagne des pièces en jouant (kills, victoires, défis)</small></div><div id="shdeal"></div>
 <div id="wtab"></div>
@@ -200,7 +205,7 @@ h1{margin:0;font-weight:400;font-size:clamp(34px,6.4vw,60px);line-height:.95;col
 <div class="btn" id="shb">RETOUR</div></div></div>
 <div class="ov off" id="op"><div class="panel" style="width:100%;max-width:520px"><h1 style="font-size:40px">OPTIONS</h1>
 <div id="set"><div class="tabs"><span class="tab on" data-t="p">Profil</span><span class="tab" data-t="m">Souris</span><span class="tab" data-t="k">Touches</span><span class="tab" data-t="s">Son</span><span class="tab" data-t="i">Image</span></div>
-<div class="pane on" id="tp"><h2>Skin d’arme</h2><div class="skg" id="skg"></div><h2>Camos universels · <span id="coins">0</span> 🪙 <span class="sk" id="shpo">🛒 Boutique d’armes</span></h2><div class="skg" id="shg"></div><h2>Maîtrise des armes</h2><div class="stt" id="mst"></div><h2>Sauvegarde en ligne</h2><div class="stt" id="cld"></div><h2>Statistiques</h2><div class="stt" id="stt"></div><span id="prst">Réinitialiser la progression</span></div>
+<div class="pane on" id="tp"><h2>Skin d’arme</h2><div class="skg" id="skg"></div><h2>Camos universels · <span id="coins">0</span> 🪙</h2><div class="skg"><span class="sk" id="shpo">🛒 Ouvrir la boutique d’armes</span></div><div class="skg" id="shg"></div><h2>Maîtrise des armes</h2><div class="stt" id="mst"></div><h2>Sauvegarde en ligne</h2><div class="stt" id="cld"></div><h2>Statistiques</h2><div class="stt" id="stt"></div><span id="prst">Réinitialiser la progression</span></div>
 <div class="pane" id="tm">
 <label><span>Sensibilité</span><input type="range" id="s_sens" min=".1" max="3" step=".05"><span class="v" id="v_sens"></span></label>
 <label><span>Sensibilité visée</span><input type="range" id="s_ads" min=".2" max="1.5" step=".05"><span class="v" id="v_ads"></span></label>
@@ -328,7 +333,7 @@ function wallFor(n){if(!REAL)return wallM;const w=WALLS[n];if(!w)return wallM;tr
 /* ---------- carte ---------- */
 
 /* ---------- fusion des meshes statiques : moins d'appels de rendu (draw calls) ---------- */
-let GAME_READY=false,WARM=0;const MGM=new Map();
+let GAME_READY=false;const MGM=new Map();
 function groundDecor(M){try{if(!REAL||(S.gfx|0)<1)return;const fl=M.meshes.find(m=>m.geometry&&m.geometry.type==='PlaneGeometry'&&m.material&&m.material.map);if(!fl)return;const mp=fl.material.map;
  const kind=mp===floorT?'grass':(mp===sandT||mp===wSandT)?'sand':mp===dirtT?'dirt':null;if(!kind)return;
  const n=kind==='grass'?((S.gfx|0)>1?220:110):((S.gfx|0)>1?70:40);
