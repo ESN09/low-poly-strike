@@ -608,9 +608,9 @@ function setMap(i){ensureMap(i);MAPS.forEach(m=>(m.objs||[]).forEach(o=>o.visibl
  MAP=M}
 setMap(0);
 const sel={tm:0,tl:1,tsz:4,pcl:0,zb:0,ev:1,slot:0,ldo:0,fmode:0,sdiff:1,att:0,ftarget:10,rnd:0,mode:'survie',map:1,target:5,lvl:4,p:0,s:4,smap:0};
-const blk=(x,z,y,r)=>{for(const b of boxes)if(!(NVS&&b.dyn)&&y<b.top-.3&&(b.b0===undefined||y+1.4>b.b0+.001)&&x>b.x0-r&&x<b.x1+r&&z>b.z0-r&&z<b.z1+r)return true;return false};
+const blk=(x,z,y,r)=>{for(const b of boxes)if(!(NVS&&b.dyn)&&y<b.top-.3&&(b.b0===undefined||y+1.4>b.b0+.001)&&x>b.x0-r&&x<b.x1+r&&z>b.z0-r&&z<b.z1+r)return true;for(const q of ramps){const t=(x-q.xa)*q.dir,y0=q.y0||0;if(t>0&&t<q.len&&Math.abs(z-q.zc)<q.w/2+r&&y>=y0-.5&&y<y0+t/q.len*q.H-.3)return true}return false};
 function groundAt(x,z,y){let h=0;for(const b of boxes)if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&y>=b.top-.4&&b.top>h&&b.top<8)h=b.top;
- for(const r of ramps){const t=(x-r.xa)*r.dir;if(t>0&&t<r.len&&Math.abs(z-r.zc)<r.w/2&&y>=(r.y0||0)-.5){const q=(r.y0||0)+t/r.len*r.H;if(q>h)h=q}}return h}
+ for(const r of ramps){const t=(x-r.xa)*r.dir;if(t>0&&t<r.len&&Math.abs(z-r.zc)<r.w/2&&y>=(r.y0||0)-.5){const q=(r.y0||0)+t/r.len*r.H;if(q>h&&q<=y+.6)h=q}}return h}
 
 /* ---------- audio procédural ---------- */
 
@@ -724,7 +724,7 @@ function damage(e,d,head){if(!e.remote&&(!e.alive||e.hp<=0))return;if(PC()===3)d
 
 /* ---------- état joueur ---------- */
 const P={x:0,y:0,z:8,vx:0,vz:0,vy:0,yaw:0,pitch:0,hp:100,ground:true,eye:1.7,crouch:false,bob:0,lastHurt:-9,inv:0,sh:0,pot:1,coy:0,sl:0,cp:false,sx:0,sz:0,roll:0,dip:0,spK:0,stp:0,gr:2,gcd:0};
-let MODE='survie',target=0,eScore=0,drinkT=0,potT=0,AI={spd:3,acc:1,cd:1,dm:1},T=0,state='menu',locked=false,firing=false,ads=false,adsT=0,shotDone=false,nextShot=0,reloadT=0,swT=0,wk=0,kick=0,bloom=0,spreadCur=.01,muzT=0,hmT=0,dmgFx=0,shk=0;
+let wpush=0,MODE='survie',target=0,eScore=0,drinkT=0,potT=0,AI={spd:3,acc:1,cd:1,dm:1},T=0,state='menu',locked=false,firing=false,ads=false,adsT=0,shotDone=false,nextShot=0,reloadT=0,swT=0,wk=0,kick=0,bloom=0,spreadCur=.01,muzT=0,hmT=0,dmgFx=0,shk=0;
 const k={};
 const hudCache={};
 function setS2(id,prop,v){const k=id+prop;if(hudCache[k]!==v){hudCache[k]=v;$(id).style[prop]=v}}
@@ -1472,6 +1472,7 @@ function update(dt){
  w.g.position.set(hp[0]+(ap[0]-hp[0])*adsT+Math.cos(P.bob)*.012*mvk,hp[1]+(ap[1]-hp[1])*adsT+Math.sin(P.bob*2)*.01*mvk+Math.sin(Math.min(1,insT/1.7)*Math.PI)*.05-rp*.26-(drinkT>0?.28:0)-swT*.6-(sprint?.05:0),hp[2]+(ap[2]-hp[2])*adsT+wk*.07);
  if(insT>0)insT=Math.max(0,insT-dt);const ip=insT>0?Math.sin((1-insT/1.7)*Math.PI):0;
  w.g.rotation.set(wk*.06-rp*.8+swT*.9+(sprint?.25:0)+ip*.35,(sprint?.5:0)+rp*.35+ip*1.9,(sprint?-.25:0)+rp*.5-swT*.4+ip*.5);
+ {let dm=9;const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);for(const dd of [.3,.55,.8,1.05]){if(blk(P.x+fx*dd,P.z+fz*dd,P.y+1.2,.12)){dm=dd;break}}const tg=dm<9?Math.min(1,(1.15-dm)/.75):0;wpush+=(tg-wpush)*Math.min(1,(tg>wpush?18:9)*dt);if(wpush>.01){const k=wpush*(1-adsT*.6);w.g.position.z+=k*.34;w.g.position.y-=k*.1;w.g.rotation.x+=k*.65}}
  w.g.position.y+=Math.sin(T*1.7)*.0035*(1-mvk)*(1-adsT*.8);w.g.rotation.z+=Math.sin(T*1.1)*.004*(1-mvk);
  const scp=!!w.scope&&adsT>.7;w.g.visible=!scp;$('scope').style.opacity=scp?1:0;
  // ennemis / fx
