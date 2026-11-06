@@ -310,6 +310,40 @@ let curN='Arène';
 function wallFor(n){if(!REAL)return wallM;const w=WALLS[n];if(!w)return wallM;try{return TM(w[0],w[1],w[2])}catch(e){return wallM}}
 
 /* ---------- carte ---------- */
+
+/* ---------- fusion des meshes statiques : moins d'appels de rendu (draw calls) ---------- */
+const MGM=new Map();
+function mergeStatic(M){try{
+ const skip=new Set(),mark=o=>o&&o.traverse(c=>skip.add(c));SWAY.forEach(q=>mark(q.m));WAT.forEach(w=>mark(w.m));
+ const inW=new Set(M.meshes),cand=[];(M.objs||[]).forEach(o=>{o.traverse&&o.traverse(c=>{if(c.isMesh)cand.push(c)})});
+ const groups=new Map();
+ for(const m of cand){
+  const g=m.geometry,mt=m.material;
+  if(skip.has(m)||!m.visible||!g||!mt||Array.isArray(mt)||mt.transparent||!mt.color||m.isInstancedMesh||m.isSkinnedMesh||(m.userData&&Object.keys(m.userData).length)||!g.attributes||!g.attributes.position||!g.attributes.normal||(g.morphAttributes&&Object.keys(g.morphAttributes).length)||(mt.emissive&&mt.emissive.getHex()!==0)||mt.type==='MeshBasicMaterial'||mt.type==='MeshPhongMaterial')continue;
+  const uv=!!g.attributes.uv,w=inW.has(m),sg=[mt.type,mt.map&&mt.map.uuid,mt.opacity,mt.side,mt.flatShading,mt.roughness,mt.metalness,mt.alphaTest,uv,m.castShadow,m.receiveShadow,w].join('|'),sig=sg+'|'+Math.floor(m.position.x/22)+'|'+Math.floor(m.position.z/22);m.__sg=sg;
+  let a=groups.get(sig);if(!a){a=[];groups.set(sig,a)}a.push(m)}
+ const gone=new Set(),add=[];let nm=0;
+ groups.forEach(a=>{
+  if(a.length<2)return;
+  let nv=0,ni=0;const uv=!!a[0].geometry.attributes.uv;
+  a.forEach(m=>{nv+=m.geometry.attributes.position.count;ni+=m.geometry.index?m.geometry.index.count:m.geometry.attributes.position.count});
+  if(nv>65000)return;
+  const P=new Float32Array(nv*3),N=new Float32Array(nv*3),C=new Float32Array(nv*3),U=uv?new Float32Array(nv*2):null,I=new Uint32Array(ni);let vo=0,io=0;
+  const v=new THREE.Vector3(),nmx=new THREE.Matrix3();
+  a.forEach(m=>{m.updateWorldMatrix(true,false);const g=m.geometry,pa=g.attributes.position,na=g.attributes.normal,ua=g.attributes.uv,ca=g.attributes.color,cc=m.material.color;nmx.getNormalMatrix(m.matrixWorld);
+   for(let i=0;i<pa.count;i++){const o=vo+i;v.fromBufferAttribute(pa,i).applyMatrix4(m.matrixWorld);P[o*3]=v.x;P[o*3+1]=v.y;P[o*3+2]=v.z;v.fromBufferAttribute(na,i).applyMatrix3(nmx).normalize();N[o*3]=v.x;N[o*3+1]=v.y;N[o*3+2]=v.z;
+    if(ca){C[o*3]=ca.getX(i)*cc.r;C[o*3+1]=ca.getY(i)*cc.g;C[o*3+2]=ca.getZ(i)*cc.b}else{C[o*3]=cc.r;C[o*3+1]=cc.g;C[o*3+2]=cc.b}
+    if(U){U[o*2]=ua.getX(i);U[o*2+1]=ua.getY(i)}}
+   if(g.index){for(let i=0;i<g.index.count;i++)I[io+i]=g.index.getX(i)+vo;io+=g.index.count}else{for(let i=0;i<pa.count;i++)I[io+i]=vo+i;io+=pa.count}
+   vo+=pa.count});
+  const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(P,3));G.setAttribute('normal',new THREE.BufferAttribute(N,3));G.setAttribute('color',new THREE.BufferAttribute(C,3));if(U)G.setAttribute('uv',new THREE.BufferAttribute(U,2));G.setIndex(new THREE.BufferAttribute(I,1));G.computeBoundingSphere();G.computeBoundingBox();
+  let vm=MGM.get(a[0].__sg);if(!vm){vm=a[0].material.clone();vm.color.setHex(0xffffff);vm.vertexColors=true;vm.needsUpdate=true;MGM.set(a[0].__sg,vm)}
+  const mm=new THREE.Mesh(G,vm);mm.castShadow=a[0].castShadow;mm.receiveShadow=a[0].receiveShadow;mm.matrixAutoUpdate=false;mm.__w=inW.has(a[0]);
+  a.forEach(m=>{gone.add(m);m.parent&&m.parent.remove(m);m.geometry.dispose()});nm++;add.push(mm)});
+ for(let i=M.meshes.length-1;i>=0;i--)if(gone.has(M.meshes[i]))M.meshes.splice(i,1);
+ if(M.objs)for(let i=M.objs.length-1;i>=0;i--)if(gone.has(M.objs[i]))M.objs.splice(i,1);
+ add.forEach(mm=>{scene.add(mm);if(mm.__w)M.meshes.push(mm)});
+ return nm}catch(e){ERR('Fusion : '+e.message)}}
 const boxes=[],ramps=[],worldMeshes=[];rec=[];let DR=[],NVS=false;
 function addBox(cx,cz,sx,sz,h,mat,y0=0){const g=new THREE.BoxGeometry(sx,h,sz),T=mat.userData&&mat.userData.uvs;if(T){const uv=g.attributes.uv,dm=[[sz,h],[sz,h],[sx,sz],[sx,sz],[sx,h],[sx,h]];for(let f=0;f<6;f++)for(let v=0;v<4;v++){const i=f*4+v,sv=(f<2||f>3)?y0/T:0;uv.setXY(i,uv.getX(i)*dm[f][0]/T,uv.getY(i)*dm[f][1]/T+sv)}}const m=new THREE.Mesh(g,mat);m.position.set(cx,y0+h/2,cz);m.castShadow=Math.max(sx,sz,h)>=2.2;m.receiveShadow=true;scene.add(m);worldMeshes.push(m);boxes.push({x0:cx-sx/2,x1:cx+sx/2,z0:cz-sz/2,z1:cz+sz/2,top:y0+h,b0:y0>0?y0:undefined});return m}
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),L(0xffffff,floorT));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);worldMeshes.push(floor);
@@ -411,11 +445,11 @@ for(let n=0,t=0;n<3&&t<300;t++){const x=R(-34,34),z=R(-34,34);if(!free(x,z,4))co
 for(let i=0;i<9;i++){const cm=new THREE.MeshBasicMaterial({color:0xffffff,fog:false});cloudM.push(cm);const c=new THREE.Mesh(new THREE.IcosahedronGeometry(R(4,8),0),cm);c.scale.set(1.8,.6,1);c.position.set(R(-90,90),R(30,45),R(-90,90));scene.add(c)}
 
 /* ---------- cartes fermées ---------- */
-const MAPS=[{doors:DR,built:true,objs:rec,boxes:boxes.slice(),ramps:ramps.slice(),meshes:worldMeshes.slice(),h:40,hx:40,hz:40,name:'Arène'}];DR=null;rec=null;
+const MAPS=[{doors:DR,built:true,objs:rec,boxes:boxes.slice(),ramps:ramps.slice(),meshes:worldMeshes.slice(),h:40,hx:40,hz:40,name:'Arène'}];{const M0=MAPS[0];mergeStatic(M0);worldMeshes.length=0;worldMeshes.push(...M0.meshes)}DR=null;rec=null;
 function room(h,k=h,fm){const f=new THREE.Mesh(new THREE.PlaneGeometry(h*2,k*2),fm||L(0xffffff,floorT));f.rotation.x=-Math.PI/2;f.receiveShadow=true;scene.add(f);worldMeshes.push(f);
  const WM=wallFor(curN);addBox(0,-k-1,h*2+4,2,6,WM);addBox(0,k+1,h*2+4,2,6,WM);addBox(-h-1,0,2,k*2,6,WM);addBox(h+1,0,2,k*2,6,WM)}
 function buildMap(name,h,sp,fn,k=h,fm){MAPS.push({built:false,fn,fm,h,k,hx:h,hz:k,sp,name})}
-function ensureMap(i){const M=MAPS[i];if(M.built)return;const sb=boxes.slice(),sr=ramps.slice(),sw=worldMeshes.slice();boxes.length=ramps.length=worldMeshes.length=0;rec=[];DR=[];curN=M.name;room(M.h,M.k,M.fm);M.fn();Object.assign(M,{doors:DR,objs:rec,boxes:boxes.slice(),ramps:ramps.slice(),meshes:worldMeshes.slice(),built:true});rec=null;M.objs.forEach(o=>o.visible=false);boxes.length=ramps.length=worldMeshes.length=0;DR=null;boxes.push(...sb);ramps.push(...sr);worldMeshes.push(...sw)}
+function ensureMap(i){const M=MAPS[i];if(M.built)return;const sb=boxes.slice(),sr=ramps.slice(),sw=worldMeshes.slice();boxes.length=ramps.length=worldMeshes.length=0;rec=[];DR=[];curN=M.name;room(M.h,M.k,M.fm);M.fn();Object.assign(M,{doors:DR,objs:rec,boxes:boxes.slice(),ramps:ramps.slice(),meshes:worldMeshes.slice(),built:true});mergeStatic(M);rec=null;M.objs.forEach(o=>o.visible=false);boxes.length=ramps.length=worldMeshes.length=0;DR=null;boxes.push(...sb);ramps.push(...sr);worldMeshes.push(...sw)}
 buildMap('Entrepôt',22,[[-17,-17],[17,17],[-18,-4],[18,4]],()=>{const c=(x,z,sx,sz,col)=>addBox(x,z,sx,sz,2.6,L(col,contT));
  c(-8,-6,8,2.4,0xff3b6b);c(8,6,8,2.4,0x2ec4ff);c(0,-14,2.4,6,0xffe14d);c(0,14,2.4,6,0x8a3ffc);
  [[0,0],[-14,10],[14,-10],[-4,10],[4,-10],[15,12],[-15,-12]].forEach(([x,z])=>addBox(x,z,2,2,1.5,crateM));
@@ -1712,7 +1746,8 @@ $('s_inv').checked=!!S.inv;$('s_inv').addEventListener('change',e=>{S.inv=e.targ
 applyS();
 camera.position.set(P.x,1.7,P.z);
 let last=performance.now(),fpsT=0,fpsN=0,lowC=0;
-let shF=0,mmF=0;
+let shF=0,mmF=0,lodF=0;
+function enemyLOD(){for(const e of enemies){if(!e.g||!e.g.visible)continue;const dx=e.x-P.x,dz=e.z-P.z,d2=dx*dx+dz*dz,lv=d2>1100?2:d2>700?1:0;if(e.lod===lv)continue;e.lod=lv;const p=e.parts;if(!p)continue;for(let i=9;i<=12;i++)if(p[i])p[i].visible=lv===0;for(let i=0;i<p.length;i++)p[i].castShadow=lv<2}}
 function loop(now){requestAnimationFrame(loop);if(REAL&&++bootN===120){try{localStorage.removeItem('lps_boot')}catch(e){}}sunTick();musicTick(Math.min(.1,(now-(loop.m||now))/1000));loop.m=now;{const v=(state==='over'&&MODE!=='ffa'&&MODE!=='online'&&KC.n>=10)?'inline-block':'none';if(hudCache.rpb!==v){hudCache.rpb=v;const rb=$('rpb');if(rb)rb.style.display=v}}const rd=(now-last)/1000,dt=Math.min(.05,rd);last=now;
  if(rd<.5){fpsT+=rd;fpsN++;if(fpsT>=1){const f=fpsN/fpsT;$('fps').textContent=S.fps?Math.round(f)+' FPS':'';if(locked&&state==='play'){lowC=f<42?lowC+1:0;if(lowC>=5&&S.gfx>0){S.gfx--;lowC=0;applyGfx();save();toast('Graphismes réduits pour plus de fluidité')}}fpsT=0;fpsN=0}}
  let sdt=dt;if(slowT>0){slowT-=dt;sdt=dt*.25}if(hs>0){hs-=dt;sdt=Math.min(sdt,dt*.1)}
@@ -1720,7 +1755,7 @@ function loop(now){requestAnimationFrame(loop);if(REAL&&++bootN===120){try{local
  else if(KC.on&&state==='over'){kcPlay()}
  else if(state==='menu'||state==='over'){if(state==='over')danceTick(dt);oa+=dt*.12;const r=Math.min(MAP.hx,MAP.hz)*.85;camera.position.set(Math.cos(oa)*r,9+Math.sin(oa*.7)*2,Math.sin(oa)*r);camera.lookAt(0,1.2,0);if(Math.abs(camera.fov-S.fov)>.05){camera.fov=S.fov;camera.updateProjectionMatrix()}}
   updRain(dt);ambTick(dt,now/1000);swayTick(now/1000);waterTick(now/1000);
- if((shF=(shF+1)%3)===0)renderer.shadowMap.needsUpdate=true;
+ if((lodF=(lodF+1)&3)===0)enemyLOD();if((shF=(shF+1)%3)===0)renderer.shadowMap.needsUpdate=true;
  renderer.render(scene,camera)}
 genCh();
 $('pname').value=PR.name;$('pname').addEventListener('input',e=>{PR.name=e.target.value.slice(0,14);savePR()});
