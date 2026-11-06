@@ -6,14 +6,59 @@ const rooms = new Map();   // 1v1 : code -> {a, b}
 const frooms = new Map();  // mêlée : code -> {peers: Map(id -> peer), host: id}
 const MAXP = 8;
 
+// persistance externe optionnelle (Upstash Redis, offre gratuite) : sur Render gratuit le disque est effacé à chaque redémarrage.
+// Variables d'environnement à créer sur Render : UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN. Sans elles, on garde les fichiers .json comme avant.
+const UP_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/$/, ''), UP_TOK = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const UP = !!(UP_URL && UP_TOK && typeof fetch === 'function');
+function upCmd(cmd) { return fetch(UP_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + UP_TOK, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd) }).then(r => r.json()).catch(() => null); }
+const upSet = (k, v) => UP ? upCmd(['SET', 'lps:' + k, JSON.stringify(v)]) : null;
+const upGet = k => UP ? upCmd(['GET', 'lps:' + k]).then(j => { try { return j && j.result ? JSON.parse(j.result) : null; } catch (e) { return null; } }) : Promise.resolve(null);
+console.log(UP ? 'Persistance externe (Upstash) : activée' : 'Persistance externe : désactivée (fichiers locaux seulement)');
+
 // classement (en mémoire + sauvegarde dans lb.json ; sur l'offre gratuite de Render le fichier peut être effacé à chaque redémarrage)
 const LBF = path.join(process.env.LB_DIR || __dirname, 'lb.json');
 let LB = {};
 try { LB = JSON.parse(fs.readFileSync(LBF, 'utf8')) || {}; } catch (e) { LB = {}; }
 let lbDirty = false;
-setInterval(() => { if (lbDirty) { lbDirty = false; try { fs.writeFileSync(LBF, JSON.stringify(LB)); } catch (e) {} } }, 15000).unref();
+setInterval(() => { if (lbDirty) { lbDirty = false; try { fs.writeFileSync(LBF, JSON.stringify(LB)); } catch (e) {} upSet('lb', LB); } }, 15000).unref();
+upGet('lb').then(d => { if (d && typeof d === 'object') LB = Object.assign({}, LB, d); });
+// classement de la semaine (remis à zéro chaque lundi, UTC) et défi du jour (remis à zéro chaque jour)
+const weekKey = () => { const d = new Date(), t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7)); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return t.getUTCFullYear() + '-S' + String(Math.ceil(((t - y0) / 86400000 + 1) / 7)).padStart(2, '0'); };
+const dayKey = () => new Date().toISOString().slice(0, 10);
+const WKF = path.join(process.env.LB_DIR || __dirname, 'week.json'), DLF = path.join(process.env.LB_DIR || __dirname, 'daily.json');
+let WK = { w: weekKey(), e: {} }, DL = { d: dayKey(), e: {} }, wkDirty = false, dlDirty = false;
+try { const x = JSON.parse(fs.readFileSync(WKF, 'utf8')); if (x && x.e) WK = x; } catch (e) {}
+try { const x = JSON.parse(fs.readFileSync(DLF, 'utf8')); if (x && x.e) DL = x; } catch (e) {}
+upGet('wk').then(d => { if (d && d.e && d.w === weekKey()) WK = d; });
+upGet('dl').then(d => { if (d && d.e && d.d === dayKey()) DL = d; });
+const wkChk = () => { const k = weekKey(); if (WK.w !== k) { WK = { w: k, e: {} }; wkDirty = true; } };
+const dlChk = () => { const k = dayKey(); if (DL.d !== k) { DL = { d: k, e: {} }; dlDirty = true; } };
+setInterval(() => {
+  if (wkDirty) { wkDirty = false; try { fs.writeFileSync(WKF, JSON.stringify(WK)); } catch (e) {} upSet('wk', WK); }
+  if (dlDirty) { dlDirty = false; try { fs.writeFileSync(DLF, JSON.stringify(DL)); } catch (e) {} upSet('dl', DL); }
+}, 15000).unref();
+function wkTop(key) { wkChk(); return Object.values(WK.e).filter(e => (e[key] || 0) > 0).sort((a, b) => (b[key] || 0) - (a[key] || 0)).slice(0, 10).map(e => ({ n: e.n, k: e.k || 0, wn: e.wn || 0 })); }
+function dlTop() { dlChk(); return Object.values(DL.e).sort((a, b) => b.s - a.s).slice(0, 10).map(e => ({ n: e.n, s: e.s })); }
+function dlPost(req, res) {
+  const ip = ipOf(req), now = Date.now(), J = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
+  if (now - (lbRate.get('d' + ip) || 0) < 3000) return J(429, {});
+  lbRate.set('d' + ip, now);
+  let body = '';
+  req.on('data', c => { body += c; if (body.length > 400) req.destroy(); });
+  req.on('end', () => {
+    try {
+      const m = JSON.parse(body), n = String(m.n || '').replace(/[<>&"]/g, '').trim().slice(0, 14), sc = Math.floor(+m.s);
+      dlChk();
+      if (n && m.k === DL.d && sc >= 0 && sc <= 300000) {
+        const key = n.toLowerCase();
+        if ((!DL.e[key] && Object.keys(DL.e).length < 1500) || (DL.e[key] && sc > DL.e[key].s)) { DL.e[key] = { n, s: sc }; dlDirty = true; }
+      }
+    } catch (e) {}
+    J(200, { d: DL.d, top: dlTop() });
+  });
+}
 function lbTop(key) { return Object.values(LB).sort((a, b) => (b[key] || 0) - (a[key] || 0) || b.l - a.l).filter(e => (e[key] || 0) > 0).slice(0, 10).map(e => ({ n: e.n, w: e.w, l: e.l, k: e.k || 0, wn: e.wn || 0 })); }
-const lbAll = () => ({ w: lbTop('w'), l: lbTop('l'), k: lbTop('k'), v: lbTop('wn') });
+const lbAll = () => ({ w: lbTop('w'), l: lbTop('l'), k: lbTop('k'), v: lbTop('wn'), wk: { id: WK.w, k: wkTop('k'), v: wkTop('wn') } });
 const lbRate = new Map(), lbNew = new Map();   // limites par IP
 function ipOf(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
 function lbPost(req, res) {
@@ -38,6 +83,7 @@ function lbPost(req, res) {
         if (c.n >= 5 || w > 80 || l > 60 || k > 8000 || wn > 800) ok = false; else { c.n++; lbNew.set(ip, c); }
       }
       if (ok) {
+        if (old) { const dk = Math.max(0, k - (old.k || 0)), dwn = Math.max(0, wn - (old.wn || 0)); if ((dk || dwn) && (WK.e[k0] || Object.keys(WK.e).length < 3000)) { wkChk(); const x = WK.e[k0] || { n, k: 0, wn: 0 }; x.n = n; x.k += dk; x.wn += dwn; WK.e[k0] = x; wkDirty = true; } }
         const key = k0, e = LB[key] || { n, w: 0, l: 1 };
         e.n = n; e.w = Math.max(e.w, w); e.l = Math.max(e.l, l); e.k = Math.max(e.k || 0, k); e.wn = Math.max(e.wn || 0, wn); LB[key] = e; lbDirty = true;
         if (Object.keys(LB).length > 2000) { const keep = Object.values(LB).sort((a, b) => b.w + b.l - a.w - a.l).slice(0, 1000); LB = {}; keep.forEach(x => LB[x.n.toLowerCase()] = x); }
@@ -57,7 +103,7 @@ function profile(req, res, u) {
   const code = String(u.searchParams.get('c') || '').toUpperCase();
   const J = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
   if (!/^[A-Z0-9]{6,8}$/.test(code)) return J(400, {});
-  if (req.method !== 'POST') return PROF[code] ? J(200, PROF[code]) : J(404, {});
+  if (req.method !== 'POST') { if (PROF[code]) return J(200, PROF[code]); if (UP) return upGet('p:' + code).then(d => { if (d && typeof d.xp === 'number') { PROF[code] = d; return J(200, d); } J(404, {}); }); return J(404, {}); }
   const ip = ipOf(req), now = Date.now();
   if (now - (lbRate.get('p' + ip) || 0) < 3000) return J(429, {});
   lbRate.set('p' + ip, now);
@@ -68,13 +114,14 @@ function profile(req, res, u) {
       const m = JSON.parse(body);
       if (typeof m.xp !== 'number' || !Array.isArray(m.own) || !Array.isArray(m.wk)) return J(400, {});
       if (!PROF[code] && Object.keys(PROF).length >= 3000) return J(507, {});
-      PROF[code] = m; profDirty = true; J(200, { ok: 1 });
+      PROF[code] = m; profDirty = true; upSet('p:' + code, m); J(200, { ok: 1 });
     } catch (e) { J(400, {}); }
   });
 }
 
 // joueurs connectes en simultane : chaque page ouverte envoie un signal toutes les 25 s
 const hb = new Map();
+function gamesCount() { let g = 0; for (const r of rooms.values()) if (r.a && r.b) g++; for (const r of frooms.values()) if (r.started && r.peers.size > 0) g++; return g; }
 function hbCount() { const t = Date.now(); let n = 0; for (const [k, v] of hb) { if (t - v > 70000) hb.delete(k); else n++; } return n; }
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/profile')) return profile(req, res, new URL(req.url, 'http://x'));
@@ -86,7 +133,11 @@ const server = http.createServer((req, res) => {
   if (req.url.startsWith('/hb')) {
     const u = new URL(req.url, 'http://x'), id = (u.searchParams.get('i') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
     if (id) { if (u.searchParams.get('b')) hb.delete(id); else if (hb.size < 5000 || hb.has(id)) hb.set(id, Date.now()); }
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ n: hbCount() }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ n: hbCount(), g: gamesCount() }));
+  }
+  if (req.url.startsWith('/daily')) {
+    if (req.method === 'POST') return dlPost(req, res);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ d: dayKey(), top: dlTop() }));
   }
   if (req.url === '/ping') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('lps'); }
   if (req.url === '/lb') {
