@@ -581,7 +581,7 @@ const sfx={
 /* ---------- armes ---------- */
 function mk(parts){const g=new THREE.Group();for(const[w,h,d,c,x,y,z]of parts){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),L(c));m.position.set(x,y,z);g.add(m)}return g}
 const skin=0xffcf9f;
-function muzzle(z){const m=new THREE.Mesh(new THREE.SphereGeometry(.07,6,5),new THREE.MeshBasicMaterial({color:0xffe14d}));m.position.set(0,.01,z);m.scale.set(1,1,1.6);m.visible=false;return m}
+function muzzle(z){const m=new THREE.Mesh(new THREE.SphereGeometry(.05,6,5),new THREE.MeshBasicMaterial({color:0xffc83a,transparent:true,opacity:.7}));m.position.set(0,.01,z);m.scale.set(1,1,1.4);m.visible=false;return m}
 const W=[
 {n:"AR-X7",auto:1,rate:.085,dmg:22,pel:1,spread:.011,bloom:.004,recoil:.012,magMax:30,mag:30,res:120,reload:1.7,fov:50,snd:"rifle",hip:[.22,-.22,-.45],ads:[0,-.105,-.33],
  g:mk([[.07,.1,.5,0x2b2d42,0,0,0],[.078,.078,.26,0x8a3ffc,0,-.005,-.36],[.03,.03,.26,0x555566,0,.01,-.58],[.06,.12,.22,0x2ec4ff,0,-.03,.32],[.05,.16,.08,0xffe14d,0,-.12,.05],[.05,.11,.06,0x222233,0,-.1,.17],[.03,.04,.1,0xffe14d,0,.07,-.05],[.075,.075,.18,skin,0,-.07,-.32],[.06,.08,.09,skin,0,-.12,.19]])},
@@ -1379,7 +1379,7 @@ function update(dt){
  kick*=Math.max(0,1-9*dt);shk*=Math.max(0,1-9*dt);bloom*=Math.max(0,1-8*dt);wk*=Math.max(0,1-14*dt);
  const tgt=w.spread*(1+mv/6)*(P.ground?1:2.2)*(P.crouch?.65:1)*(1-adsT*(w.as||.65));spreadCur+=(tgt-spreadCur)*Math.min(1,10*dt);
  P.pitch=Math.max(-1.45,Math.min(1.45,P.pitch));
- if(REAL)hemi.intensity=hemiBase+(muzT>0?.4:0);if(muzT>0){muzT-=dt;if(muzT<=0)W.forEach(q=>q.muz.visible=false)}
+ if(REAL)hemi.intensity=hemiBase+(muzT>0?.1:0);if(muzT>0){muzT-=dt;if(muzT<=0)W.forEach(q=>q.muz.visible=false)}
  if(T-P.lastHurt>(5-PKN.reg))P.hp=Math.min(100,P.hp+(12+8*PKN.reg)*dt);
  if(MODE==='ffa'){net.last+=dt;if(net.last>.066){net.last=0;ffaSend({t:'s',i:ffa.id,x:P.x,y:P.y,z:P.z,yw:P.yaw+Math.PI,hp:Math.max(0,P.hp+P.sh),mv:mv>.8?1:0,c:P.crouch?1:0,rc:ffa.rc,hs:ffaHs(),iv:T<P.inv?1:0})}}
  if(MODE==='online'){net.last+=dt;if(net.last>.066){net.last=0;netSend({t:'s',x:P.x,y:P.y,z:P.z,yw:P.yaw+Math.PI,hp:Math.max(0,P.hp+P.sh),mv:mv>.8?1:0,c:P.crouch?1:0,iv:T<P.inv?1:0})}}
