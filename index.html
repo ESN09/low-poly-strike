@@ -313,7 +313,7 @@ function wallFor(n){if(!REAL)return wallM;const w=WALLS[n];if(!w)return wallM;tr
 /* ---------- carte ---------- */
 
 /* ---------- fusion des meshes statiques : moins d'appels de rendu (draw calls) ---------- */
-let GAME_READY=false;const MGM=new Map();
+let GAME_READY=false,WARM=0;const MGM=new Map();
 function groundDecor(M){try{if(!REAL||(S.gfx|0)<1)return;const fl=M.meshes.find(m=>m.geometry&&m.geometry.type==='PlaneGeometry'&&m.material&&m.material.map);if(!fl)return;const mp=fl.material.map;
  const kind=mp===floorT?'grass':(mp===sandT||mp===wSandT)?'sand':mp===dirtT?'dirt':null;if(!kind)return;
  const n=kind==='grass'?((S.gfx|0)>1?220:110):((S.gfx|0)>1?70:40);
@@ -767,6 +767,7 @@ function reset(){tmClear();clearHud();rcSnap();clearProj();ffaHillClear();zClear
  if(MODE==='ffa'&&sel.fmode>=4)obMake();
  if(ZMB())zStations();
  intMake();
+ try{if(GAME_READY)renderer.compile(scene,camera)}catch(e){}
  state='play'}
 function setWeapon(i){cur=i;CLS.forEach(w=>{w.g.visible=false;w.muz.visible=false});W[i].g.visible=true;$('scope').style.opacity=0;reloadT=0;swT=.25;$('wn').textContent=W[i].n}
 
@@ -1481,7 +1482,7 @@ $('st').addEventListener('click',()=>{if(state==='menu'){if(sel.mode==='online'|
 $('go').addEventListener('click',()=>{if(MODE==='ffa'){ffaRematch();return}if(MODE==='online'){onlineRematch();return}$('go').classList.add('off');reset();lock()});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;lockT=performance.now();
  if(locked)$('st').classList.add('off');else if(state==='play'){$('stb').textContent='REPRENDRE';$('modes').style.display=$('opt').style.display=$('dly').style.display='none';$('quit').style.display='block';$('st').classList.remove('off');firing=ads=false;for(const c in k)k[c]=false}});
-document.addEventListener('mousemove',e=>{if(!locked)return;if(e.buttons!==undefined){if(!(e.buttons&1))firing=false;if(!(e.buttons&2))ads=false}let mx=e.movementX,my=e.movementY;if(performance.now()-lockT<80||Math.abs(mx)>450||Math.abs(my)>450)return;const sen=.0022*S.sens*(camera.fov/S.fov)*(1+(S.ads-1)*adsT);P.yaw-=mx*sen;P.pitch-=my*sen*(S.inv?-1:1)});
+document.addEventListener('mousemove',e=>{if(!locked)return;if(e.buttons!==undefined){if(!(e.buttons&1))firing=false;if(!(e.buttons&2))ads=false}let mx=e.movementX,my=e.movementY;if(performance.now()-lockT<80||Math.abs(mx)>1800||Math.abs(my)>1800)return;const sen=.0022*S.sens*(camera.fov/S.fov)*(1+(S.ads-1)*adsT);P.yaw-=mx*sen;P.pitch-=my*sen*(S.inv?-1:1)});
 document.addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){firing=true;shotDone=false}if(e.button===2)ads=true});
 document.addEventListener('mouseup',e=>{if(e.button===0)firing=false;if(e.button===2)ads=false;if(e.buttons!==undefined){firing=!!(e.buttons&1);ads=!!(e.buttons&2)}});
 window.addEventListener('blur',()=>{firing=ads=false;for(const c in k)k[c]=false});
@@ -1803,6 +1804,7 @@ applyGfx();applySkin();drawProf();drawGfx();lbDraw();
 $('dlyb').addEventListener('click',e=>{e.stopPropagation();if(state==='menu')dlyStart()});dlyDraw();dlyFetch();
 $('lbt').addEventListener('click',e=>{e.stopPropagation();document.body.classList.toggle('lbo');lbDraw()});
 GAME_READY=true;
+try{renderer.compile(scene,camera)}catch(e){}
 requestAnimationFrame(loop);
 })();
 </script></body></html>
