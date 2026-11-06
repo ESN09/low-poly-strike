@@ -73,12 +73,20 @@ function profile(req, res, u) {
   });
 }
 
+// joueurs connectes en simultane : chaque page ouverte envoie un signal toutes les 25 s
+const hb = new Map();
+function hbCount() { const t = Date.now(); let n = 0; for (const [k, v] of hb) { if (t - v > 70000) hb.delete(k); else n++; } return n; }
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/profile')) return profile(req, res, new URL(req.url, 'http://x'));
   if (req.url === '/rooms') {
     const L = [];
     for (const [c, r] of frooms) if (r.pub && !r.started && r.peers.size < MAXP) L.push({ c, n: r.peers.size, h: r.hn || '', l: r.hl || 0 });
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(L.slice(0, 12)));
+  }
+  if (req.url.startsWith('/hb')) {
+    const u = new URL(req.url, 'http://x'), id = (u.searchParams.get('i') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+    if (id) { if (u.searchParams.get('b')) hb.delete(id); else if (hb.size < 5000 || hb.has(id)) hb.set(id, Date.now()); }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ n: hbCount() }));
   }
   if (req.url === '/ping') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('lps'); }
   if (req.url === '/lb') {
