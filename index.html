@@ -1237,7 +1237,7 @@ function tmKill(v,kt,byP,src){if(TQ.over)return;const m=sel.tm|0;v.d=(v.d||0)+1;
  tmWin()}
 function tmPDie(src){const m=sel.tm|0;eScore++;if(src&&src.k!==undefined)src.k++;if(m===0)TS[1]++;if(m===3)tmTag({team:0,x:P.x,z:P.z});
  toast('ÉLIMINÉ'+(src&&src.name?' par '+src.name.toUpperCase():''),1800);tmRespP();tmWin()}
-function tmRespP(){const al=enemies.filter(e=>e.alive);let best=TQ.bs[0][0],bd=-1;for(const p of TQ.bs[0]){const d=al.length?Math.min(...al.map(e=>Math.hypot(e.x-p[0],e.z-p[1]))):Math.random()*10;if(d>bd){bd=d;best=p}}
+function tmRespP(){const al=enemies.filter(e=>e.alive),cx=P.x,cz=P.z,sc=TQ.bs[0].map(p=>[p,(al.length?Math.min(...al.map(e=>Math.hypot(e.x-p[0],e.z-p[1]))):10)+(Math.hypot(p[0]-cx,p[1]-cz)<5?-40:0)+Math.random()*6]).sort((a,b)=>b[1]-a[1]);let best=sc[0][0];
  P.x=best[0]+R(-2,2);P.z=best[1]+R(-2,2);if(blk(P.x,P.z,0,.6)){P.x=best[0];P.z=best[1]}P.y=0;P.vx=P.vz=P.vy=0;P.hp=100;P.sh=PC()===2?40:0;P.inv=T+2.5;reloadT=0;drinkT=0;kick=0;P.pitch=0;P.yaw=Math.atan2(P.x-TQ.base[1][0],P.z-TQ.base[1][1]);W.forEach(w=>{w.mag=w.magMax;w.res=Math.max(w.res,w.r0)})}
 function tmWin(){if(TQ.over||state!=='play')return;const L=tmLim();let w=-1;if(TS[0]>=L)w=1;else if(TS[1]>=L)w=0;else if(TQ.t>720)w=TS[0]>=TS[1]?1:0;if(w<0)return;TQ.over=1;slowT=.9;P.inv=T+3;setTimeout(()=>{if(state==='play')matchEnd(!!w)},750)}
 function updTB(e,dt){
