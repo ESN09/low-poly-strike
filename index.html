@@ -537,32 +537,60 @@ const gadd=(g,geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,
 const RIMM=STY?new THREE.MeshStandardMaterial({color:0xb4bac2,roughness:.25,metalness:.9,envMapIntensity:.9}):null;
 function wheels(g,pts,r=.38){pts.forEach(([x,z])=>{const w=gadd(g,new THREE.CylinderGeometry(r,r,.32,STY?16:10),TIRE,x,r,z);w.rotation.x=Math.PI/2;if(STY){const rm=gadd(g,new THREE.CylinderGeometry(r*.62,r*.62,.34,14),RIMM,x,r,z);rm.rotation.x=Math.PI/2;const hb=gadd(g,new THREE.CylinderGeometry(r*.18,r*.18,.36,8),DARK,x,r,z);hb.rotation.x=Math.PI/2}})}
 const PNT=c=>{const m=new THREE.MeshStandardMaterial({roughness:.28,metalness:.65,envMapIntensity:.9});m.color.setHex(natural(c));return m},LAMPW=STY?new THREE.MeshBasicMaterial({color:0xfff4d0}):null,LAMPR=STY?new THREE.MeshBasicMaterial({color:0xff2a2a}):null,TRIM=STY?new THREE.MeshStandardMaterial({color:0x15171a,roughness:.55,metalness:.3}):null;
+const CLP=STY?new THREE.MeshBasicMaterial({vertexColors:true}):null;
+function wheelSet(pts,r,w,tr,rm){for(const[x,z]of pts){const t=new THREE.CylinderGeometry(r,r,w,22);xf(t,x,r,z,Math.PI/2);tr.push(t);const dk=new THREE.CylinderGeometry(r*.58,r*.58,w*.5,16);xf(dk,x,r,z,Math.PI/2);tr.push(dk);
+  const ring=new THREE.TorusGeometry(r*.6,r*.05,6,18);xf(ring,x,r,z+Math.sign(z)*w*.3);rm.push(ring);const hub=new THREE.CylinderGeometry(r*.17,r*.17,w*.62,10);xf(hub,x,r,z,Math.PI/2);rm.push(hub);
+  for(let k=0;k<5;k++){const sp=new THREE.BoxGeometry(r*.06,r*.54,.03);sp.translate(0,r*.3,0);_m.makeRotationZ(k*Math.PI*2/5);sp.applyMatrix4(_m);sp.translate(x,r,z+Math.sign(z)*w*.28);rm.push(sp)}}}
+function carBuild(g,c,ty){const P=[],GL=[],TR=[],LP=[],RM=[],L2=ty===2?2.3:2.1,hh=ty===2?1.12:.98,cab=ty===1?[-1.1,.35,.9,1.46]:ty===2?[-1.95,.15,.7,1.62]:[-1.3,.45,.95,1.52];
+ {const sh=new THREE.Shape();sh.moveTo(-L2,.4);sh.lineTo(-L2,.78);sh.quadraticCurveTo(-L2,hh-.03,-L2+.25,hh);sh.lineTo(.9,hh+.02);sh.quadraticCurveTo(L2-.35,hh,L2-.05,.78);sh.quadraticCurveTo(L2+.02,.62,L2,.4);sh.lineTo(-L2,.4);
+  const bg=new THREE.ExtrudeGeometry(sh,{depth:1.7,bevelEnabled:true,bevelThickness:.1,bevelSize:.09,bevelSegments:3,curveSegments:8});bg.translate(0,0,-.85);P.push(bg)}
+ {const sh=new THREE.Shape(),x0=cab[0],x1=cab[1],x2=cab[2],top=cab[3];sh.moveTo(x0,hh);sh.lineTo(x0+.38,top);sh.lineTo(x2-.5,top);sh.lineTo(x2,hh);sh.lineTo(x0,hh);const cg=new THREE.ExtrudeGeometry(sh,{depth:1.46,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2});cg.translate(0,0,-.73);GL.push(cg);
+  P.push(xf(rbG(x2-x0-.5,.07,1.62,.03),(x0+.38+x2-.5)/2,top+.03,0));
+  P.push(xf(rbG(.09,top-hh+.04,1.7,.02),x0+.2,(hh+top)/2,0,0,0,.34));P.push(xf(rbG(.09,top-hh+.04,1.7,.02),x2-.25,(hh+top)/2,0,0,0,-.58));P.push(xf(rbG(.07,top-hh,1.7,.02),(x0+x2)/2-.2,(hh+top)/2,0))}
+ for(const dx of[-.85,.05,.9])TR.push(xf(rbG(.025,.46,1.93,.008),dx*(L2/2.1),.7,0));TR.push(xf(rbG(3.1,.12,1.94,.04),0,.42,0));
+ TR.push(xf(rbG(.22,.3,1.9,.06),L2+.02,.52,0));TR.push(xf(rbG(.22,.3,1.9,.06),-L2-.02,.52,0));TR.push(xf(rbG(.06,.2,.9,.02),L2+.1,.62,0));
+ for(const sg of[-1,1]){LP.push(tintG(xf(rbG(.12,.13,.46,.04),L2-.02,.85,.62*sg),0xfff4d0));LP.push(tintG(xf(rbG(.12,.13,.5,.04),-L2+.02,.86,.62*sg),0xff2a2a));P.push(xf(rbG(.13,.1,.22,.04),cab[2]-.05,hh+.04,.98*sg));TR.push(xf(rbG(.5,.1,.04,.02),.1,.62,.96*sg))}
+ LP.push(tintG(xf(rbG(.02,.14,.42,.01),-L2-.12,.62,0),0xe8e8e8));
+ const wp=[[-L2*.67,-.9],[-L2*.67,.9],[L2*.67,-.9],[L2*.67,.9]];for(const[x,z]of wp){const a=new THREE.CylinderGeometry(.47,.47,1.97,18);xf(a,x,.38,0,Math.PI/2);TR.push(a)}
+ wheelSet(wp.map(q=>[q[0],q[1]*.86]),.38,.3,TR,RM);
+ gadd(g,mergeG(P),PNT(c),0,0,0);gadd(g,mergeG(GL),GLASS,0,0,0);gadd(g,mergeG(TR),TRIM,0,0,0);gadd(g,mergeG(RM),RIMM,0,0,0);gadd(g,mergeG(LP),CLP,0,0,0)}
 function car(x,z,c,alongZ=false){const g=new THREE.Group();
- if(STY){const b=PNT(c===undefined?0x8a8f99:c);
-  gadd(g,new THREE.BoxGeometry(4.2,.62,1.9),b,0,.62,0);gadd(g,new THREE.BoxGeometry(4.3,.26,1.94),TRIM,0,.42,0);gadd(g,new THREE.BoxGeometry(1.5,.1,1.84),b,1.2,.97,0);
-  gadd(g,new THREE.BoxGeometry(2.0,.62,1.7),GLASS,-.2,1.28,0);gadd(g,new THREE.BoxGeometry(1.8,.07,1.64),b,-.25,1.62,0);gadd(g,new THREE.BoxGeometry(.1,.62,1.76),b,.8,1.28,0);gadd(g,new THREE.BoxGeometry(.1,.62,1.76),b,-1.22,1.28,0);gadd(g,new THREE.BoxGeometry(.08,.62,1.76),b,-.2,1.28,0);
-  gadd(g,new THREE.BoxGeometry(.06,.14,.42),LAMPW,2.12,.78,.62);gadd(g,new THREE.BoxGeometry(.06,.14,.42),LAMPW,2.12,.78,-.62);gadd(g,new THREE.BoxGeometry(.06,.14,.44),LAMPR,-2.12,.8,.62);gadd(g,new THREE.BoxGeometry(.06,.14,.44),LAMPR,-2.12,.8,-.62);
-  gadd(g,new THREE.BoxGeometry(.05,.2,.9),TRIM,2.12,.56,0);gadd(g,new THREE.BoxGeometry(.1,.12,.2),b,.55,1.02,1.0);gadd(g,new THREE.BoxGeometry(.1,.12,.2),b,.55,1.02,-1.0);
-  wheels(g,[[-1.4,-.9],[-1.4,.9],[1.4,-.9],[1.4,.9]]);carG(g,x,z,alongZ);col_(x,z,alongZ?1.05:2.15,alongZ?2.15:1.05,1.4);return}
+ if(STY){carBuild(g,c===undefined?0x8a8f99:c,Math.abs(Math.floor(x*7.3+z*13.1))%3);carG(g,x,z,alongZ);col_(x,z,alongZ?1.05:2.15,alongZ?2.15:1.05,1.4);return}
  const b=L(c===undefined?0x8a8f99:c);
  gadd(g,new THREE.BoxGeometry(4.2,.7,1.9),b,0,.7,0);gadd(g,new THREE.BoxGeometry(2.1,.62,1.72),b,-.25,1.32,0);gadd(g,new THREE.BoxGeometry(2.14,.42,1.75),DARK,-.25,1.34,0);
  gadd(g,new THREE.BoxGeometry(.12,.22,.4),L(0xfff2a0),2.1,.8,.6);gadd(g,new THREE.BoxGeometry(.12,.22,.4),L(0xfff2a0),2.1,.8,-.6);gadd(g,new THREE.BoxGeometry(.12,.2,.4),L(0xff3030),-2.1,.8,.6);gadd(g,new THREE.BoxGeometry(.12,.2,.4),L(0xff3030),-2.1,.8,-.6);
  wheels(g,[[-1.4,-.9],[-1.4,.9],[1.4,-.9],[1.4,.9]]);carG(g,x,z,alongZ);col_(x,z,alongZ?1.05:2.15,alongZ?2.15:1.05,1.4)}
 function bus(x,z,alongZ=false){const g=new THREE.Group();
- if(STY){const b=PNT(0xf4c20d);gadd(g,new THREE.BoxGeometry(9.6,1.1,2.7),b,0,1.05,0);gadd(g,new THREE.BoxGeometry(9.64,.8,2.74),GLASS,0,2.0,0);for(let i=-4;i<=4;i++)gadd(g,new THREE.BoxGeometry(.14,.82,2.8),b,i*1.12,2.0,0);gadd(g,new THREE.BoxGeometry(9.64,.18,2.76),TRIM,0,1.5,0);gadd(g,new THREE.BoxGeometry(9.5,.12,2.6),b,0,2.45,0);gadd(g,new THREE.BoxGeometry(1.4,.4,1.1),TRIM,-1.5,2.7,0);gadd(g,new THREE.BoxGeometry(.06,.2,.5),LAMPW,4.8,1.0,.8);gadd(g,new THREE.BoxGeometry(.06,.2,.5),LAMPW,4.8,1.0,-.8);gadd(g,new THREE.BoxGeometry(.06,.2,.5),LAMPR,-4.8,1.0,.8);gadd(g,new THREE.BoxGeometry(.06,.2,.5),LAMPR,-4.8,1.0,-.8);gadd(g,new THREE.BoxGeometry(.2,.3,2.8),TRIM,4.78,.6,0);
-  wheels(g,[[-3,-1.3],[-3,1.3],[3,-1.3],[3,1.3]],.55);carG(g,x,z,alongZ);col_(x,z,alongZ?1.4:4.8,alongZ?4.8:1.4,2.9);return}
+ if(STY){const P=[],GL=[],TR=[],LP=[],RM=[];P.push(xf(rbG(9.6,1.25,2.7,.22),0,1.05,0));GL.push(xf(rbG(9.64,.85,2.72,.1),0,2.0,0));for(let i=-4;i<=4;i++)P.push(xf(rbG(.14,.88,2.8,.03),i*1.12,2.0,0));P.push(xf(rbG(9.5,.14,2.6,.12),0,2.5,0));TR.push(xf(rbG(9.7,.16,2.76,.05),0,1.52,0));TR.push(xf(rbG(1.4,.4,1.1,.08),-1.5,2.75,0));TR.push(xf(rbG(.2,.3,2.8,.08),4.85,.6,0));TR.push(xf(rbG(.2,.3,2.8,.08),-4.85,.6,0));
+  for(const sg of[-1,1]){LP.push(tintG(xf(rbG(.08,.22,.5,.03),4.82,1.05,.85*sg),0xfff4d0));LP.push(tintG(xf(rbG(.08,.22,.5,.03),-4.82,1.05,.85*sg),0xff2a2a))}
+  const wp=[[-3,-1.3],[-3,1.3],[3,-1.3],[3,1.3]];for(const[px,pz]of wp){const a=new THREE.CylinderGeometry(.68,.68,2.8,18);xf(a,px,.55,0,Math.PI/2);TR.push(a)}wheelSet(wp.map(q=>[q[0],q[1]*.9]),.55,.42,TR,RM);
+  gadd(g,mergeG(P),PNT(0xf4c20d),0,0,0);gadd(g,mergeG(GL),GLASS,0,0,0);gadd(g,mergeG(TR),TRIM,0,0,0);gadd(g,mergeG(RM),RIMM,0,0,0);gadd(g,mergeG(LP),CLP,0,0,0);
+  carG(g,x,z,alongZ);col_(x,z,alongZ?1.4:4.8,alongZ?4.8:1.4,2.9);return}
  gadd(g,new THREE.BoxGeometry(9.6,2.3,2.7),L(0xf4c20d),0,1.65,0);gadd(g,new THREE.BoxGeometry(9.64,.75,2.74),DARK,0,2.2,0);gadd(g,new THREE.BoxGeometry(9.64,.18,2.74),L(0x222222),0,1.25,0);gadd(g,new THREE.BoxGeometry(9.4,.12,2.5),L(0xe0b000),0,2.85,0);
  wheels(g,[[-3,-1.3],[-3,1.3],[3,-1.3],[3,1.3]],.55);carG(g,x,z,alongZ);col_(x,z,alongZ?1.4:4.8,alongZ?4.8:1.4,2.9)}
 function truck(x,z,c,alongZ=false){const g=new THREE.Group();
- if(STY){const b=PNT(c);gadd(g,new THREE.BoxGeometry(2.6,1.5,2.6),b,-3.9,1.3,0);gadd(g,new THREE.BoxGeometry(2.0,.8,2.4),GLASS,-4.1,2.35,0);gadd(g,new THREE.BoxGeometry(2.2,.08,2.5),b,-4.1,2.78,0);gadd(g,new THREE.BoxGeometry(.1,.8,2.3),TRIM,-5.2,1.1,0);gadd(g,new THREE.BoxGeometry(7.4,2.7,2.7),TM(metalT,1.8,0xe6e6e6),1.2,1.95,0);gadd(g,new THREE.BoxGeometry(.06,.18,.5),LAMPW,-5.22,1.0,.8);gadd(g,new THREE.BoxGeometry(.06,.18,.5),LAMPW,-5.22,1.0,-.8);
-  wheels(g,[[-3.9,-1.2],[-3.9,1.2],[2.5,-1.2],[2.5,1.2],[.9,-1.2],[.9,1.2]],.5);carG(g,x,z,alongZ);col_(x,z,alongZ?1.45:5.2,alongZ?5.2:1.45,3.2);return}
+ if(STY){const P=[],GL=[],TR=[],LP=[],RM=[],MT=[];P.push(xf(rbG(2.6,1.45,2.6,.16),-3.9,1.25,0));GL.push(xf(rbG(2.1,.85,2.4,.1),-4.0,2.2,0));P.push(xf(rbG(2.3,.1,2.5,.06),-4.0,2.72,0));TR.push(xf(rbG(.2,.4,2.7,.06),-5.3,.55,0));TR.push(xf(rbG(.3,.2,2.6,.05),-5.25,1.3,0));
+  MT.push(xf(rbG(7.4,2.7,2.7,.1),1.2,1.95,0));TR.push(xf(rbG(7.5,.3,2.4,.05),1.2,.5,0));
+  for(const sg of[-1,1])LP.push(tintG(xf(rbG(.08,.2,.5,.03),-5.27,1.05,.85*sg),0xfff4d0));
+  const wp=[[-3.9,-1.2],[-3.9,1.2],[2.5,-1.2],[2.5,1.2],[.9,-1.2],[.9,1.2]];for(const[px,pz]of wp){const a=new THREE.CylinderGeometry(.58,.58,.8,16);xf(a,px,.5,pz*1.0,Math.PI/2);TR.push(a)}wheelSet(wp,.5,.42,TR,RM);
+  gadd(g,mergeG(P),PNT(c),0,0,0);gadd(g,mergeG(GL),GLASS,0,0,0);gadd(g,mergeG(TR),TRIM,0,0,0);gadd(g,mergeG(RM),RIMM,0,0,0);gadd(g,mergeG(LP),CLP,0,0,0);gadd(g,mergeG(MT),TM(metalT,1.8,0xe6e6e6),0,0,0);
+  carG(g,x,z,alongZ);col_(x,z,alongZ?1.45:5.2,alongZ?5.2:1.45,3.2);return}
  gadd(g,new THREE.BoxGeometry(2.6,2.3,2.6),L(c),-3.9,1.6,0);gadd(g,new THREE.BoxGeometry(.1,.8,2.3),DARK,-5.2,2.2,0);gadd(g,new THREE.BoxGeometry(7.4,2.7,2.7),TM(metalT,1.8,0xf3f3f3),1.2,1.95,0);
  wheels(g,[[-3.9,-1.2],[-3.9,1.2],[2.5,-1.2],[2.5,1.2],[.9,-1.2],[.9,1.2]],.5);carG(g,x,z,alongZ);col_(x,z,alongZ?1.45:5.2,alongZ?5.2:1.45,3.2)}
 function pole(x,z){S3(new THREE.CylinderGeometry(.14,.2,9,6),TM(woodT,2,0x6b4a2a),x,4.5,z);dec(3,.14,.14,L(0x6b4a2a),x,8.4,z);col_(x,z,.3,.3,9)}
 function lamp(x,z,h=4.2){if(STY){const st=new THREE.MeshStandardMaterial({color:0x2b2f36,roughness:.5,metalness:.7,envMapIntensity:.5}),H=h+1.2;S3(new THREE.CylinderGeometry(.06,.1,H,8),st,x,H/2,z);S3(new THREE.BoxGeometry(.9,.07,.07),st,x+.4,H-.1,z);S3(new THREE.BoxGeometry(.5,.1,.22),st,x+.85,H-.12,z);
   const ln=new THREE.Mesh(new THREE.PlaneGeometry(.42,.18),new THREE.MeshBasicMaterial({color:0xffe2a8}));ln.rotation.x=Math.PI/2;ln.position.set(x+.85,H-.19,z);scene.add(ln);halo(x+.85,H-.25,z,3.4);
   if(REAL){const pl=new THREE.Mesh(new THREE.CircleGeometry(3.6,24),new THREE.MeshBasicMaterial({map:DOT,color:0xffc47a,transparent:true,opacity:.2,depthWrite:false,blending:THREE.AdditiveBlending}));pl.rotation.x=-Math.PI/2;pl.position.set(x+.85,.04,z);scene.add(pl)}col_(x,z,.2,.2,9);return}S3(new THREE.CylinderGeometry(.07,.1,h,6),L(0x3a3f4a),x,h/2,z);const m=new THREE.Mesh(new THREE.SphereGeometry(.24,8,6),new THREE.MeshBasicMaterial({color:0xfff4b0}));m.position.set(x,h+.15,z);scene.add(m);halo(x,h+.15,z);col_(x,z,.2,.2,9)}
-function mergeG(gs){let n=0;const L=gs.map(g=>g.index?g.toNonIndexed():g);for(const g of L)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let o=0;for(const g of L){P.set(g.attributes.position.array,o*3);if(g.attributes.normal)N.set(g.attributes.normal.array,o*3);if(g.attributes.uv)U.set(g.attributes.uv.array,o*2);o+=g.attributes.position.count}const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(P,3));m.setAttribute('normal',new THREE.BufferAttribute(N,3));m.setAttribute('uv',new THREE.BufferAttribute(U,2));return m}
+function mergeG(gs){let n=0;const L=gs.map(g=>g.index?g.toNonIndexed():g),hc=L.every(g=>g.attributes.color);for(const g of L)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2),C=hc?new Float32Array(n*3):null;let o=0;for(const g of L){P.set(g.attributes.position.array,o*3);if(g.attributes.normal)N.set(g.attributes.normal.array,o*3);if(g.attributes.uv)U.set(g.attributes.uv.array,o*2);if(hc)C.set(g.attributes.color.array,o*3);o+=g.attributes.position.count}const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(P,3));m.setAttribute('normal',new THREE.BufferAttribute(N,3));m.setAttribute('uv',new THREE.BufferAttribute(U,2));if(hc)m.setAttribute('color',new THREE.BufferAttribute(C,3));return m}
+/* ---------- géométrie procédurale : formes arrondies, capsules, membres ---------- */
+function rbG(w,h,d,r=.03){r=Math.max(.002,Math.min(r,w/2-.001,h/2-.001,d/2-.001));const w2=w-2*r,h2=h-2*r,rr=Math.max(.001,Math.min(r,w2/2,h2/2)),sh=new THREE.Shape();sh.moveTo(-w2/2+rr,-h2/2);sh.lineTo(w2/2-rr,-h2/2);sh.absarc(w2/2-rr,-h2/2+rr,rr,-Math.PI/2,0);sh.lineTo(w2/2,h2/2-rr);sh.absarc(w2/2-rr,h2/2-rr,rr,0,Math.PI/2);sh.lineTo(-w2/2+rr,h2/2);sh.absarc(-w2/2+rr,h2/2-rr,rr,Math.PI/2,Math.PI);sh.lineTo(-w2/2,-h2/2+rr);sh.absarc(-w2/2+rr,-h2/2+rr,rr,Math.PI,Math.PI*1.5);
+ const dp=Math.max(.0004,d-2*r),g=new THREE.ExtrudeGeometry(sh,{depth:dp,bevelEnabled:true,bevelThickness:r,bevelSize:r,bevelSegments:2,curveSegments:3});g.translate(0,0,-dp/2);g.parameters={width:w,height:h,depth:d};return g}
+function capG(r,len,seg=8){const pts=[];for(let i=0;i<=4;i++){const a=-Math.PI/2+i*Math.PI/8;pts.push(new THREE.Vector2(Math.max(.0001,r*Math.cos(a)),-len/2+r*Math.sin(a)))}for(let i=0;i<=4;i++){const a=i*Math.PI/8;pts.push(new THREE.Vector2(Math.max(.0001,r*Math.cos(a)),len/2+r*Math.sin(a)))}return new THREE.LatheGeometry(pts,seg)}
+const _UP=new THREE.Vector3(0,1,0),_q=new THREE.Quaternion(),_m=new THREE.Matrix4();
+function limbG(r,a,b,r2){const d=new THREE.Vector3().subVectors(b,a),len=d.length(),g=r2?new THREE.CylinderGeometry(r2,r,len,8):capG(r,Math.max(.001,len-2*r));_q.setFromUnitVectors(_UP,d.normalize());_m.makeRotationFromQuaternion(_q);g.applyMatrix4(_m);g.translate((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);return g}
+function tintG(g,hex){const c=new THREE.Color(hex),n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+function xf(g,x,y,z,rx=0,ry=0,rz=0){if(rx||ry||rz){_m.makeRotationFromEuler(new THREE.Euler(rx,ry,rz));g.applyMatrix4(_m)}g.translate(x,y,z);return g}
 const BTX={};
 const barrelMat=c=>{const nc=natural(c);if(!BTX[nc]){const cv_=document.createElement('canvas');cv_.width=256;cv_.height=128;const x=cv_.getContext('2d'),col='#'+new THREE.Color(nc).getHexString();x.fillStyle=col;x.fillRect(0,0,256,128);const sh=x.createLinearGradient(0,0,256,0);for(let i=0;i<=8;i++)sh.addColorStop(i/8,i%2?'rgba(0,0,0,.14)':'rgba(255,255,255,.08)');x.fillStyle=sh;x.fillRect(0,0,256,128);
  x.fillStyle='#202226';for(const y of[6,60,114])x.fillRect(0,y,256,8);x.fillStyle='rgba(255,255,255,.12)';for(const y of[14,68,122])x.fillRect(0,y,256,2);
@@ -869,7 +897,7 @@ const sfxR={
 if(STY)Object.assign(sfx,sfxR);
 
 /* ---------- armes ---------- */
-function mk(parts){const g=new THREE.Group();for(const[w,h,d,c,x,y,z]of parts){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),L(c));m.position.set(x,y,z);g.add(m)}return g}
+function mk(parts){const g=new THREE.Group();for(const[w,h,d,c,x,y,z]of parts){const m=new THREE.Mesh(STY&&Math.min(w,h,d)>.035?rbG(w,h,d,Math.min(.018,Math.min(w,h,d)*.3)):new THREE.BoxGeometry(w,h,d),L(c));m.position.set(x,y,z);g.add(m)}return g}
 const skin=0xffcf9f;
 function gunDetail(w){try{if(!REAL||w.rocket)return;const g=w.g,b=g.children[0];if(!b||!b.geometry||!b.geometry.parameters)return;const gp=b.geometry.parameters,top=b.position.y+gp.height/2,z0=b.position.z,hw=gp.width/2,acc=g.children[1]&&g.children[1].material?g.children[1].material.color.getHex():0x2ec4ff;
  const add=(w_,h,d,c,x,y,z,basic)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w_,h,d),basic?new THREE.MeshBasicMaterial({color:c}):L(c));m.position.set(x,y,z);g.add(m);return m};
@@ -933,6 +961,20 @@ function makeEnemy(i){
  {const xg=(col,parts)=>{const g=new THREE.Group();for(const[w,h,d,c,x,y,z]of parts){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),L(c));m.position.set(x,y,z);g.add(m)}g.visible=false;e.g.add(g);return g};
   e.xv={arm:xg(0,[[.84,.7,.56,0x9aa3ad,0,1.2,0],[.68,.22,.62,0x7a838d,0,2.12,0]]),gren:xg(0,[[.8,.34,.52,0xff7b00,0,1,0],[.14,.18,.14,0x2f5d2f,-.3,.82,.3],[.14,.18,.14,0x2f5d2f,.3,.82,.3]]),boss:xg(0,[[.34,.26,.56,0xb31b3a,-.58,1.62,0],[.34,.26,.56,0xb31b3a,.58,1.62,0],[.1,.34,.1,0xffe14d,-.22,2.4,0],[.1,.34,.1,0xffe14d,.22,2.4,0]])};
   const tm=new THREE.Mesh(new THREE.BoxGeometry(.5,.12,.5),new THREE.MeshBasicMaterial({color:0x2ec4ff}));tm.position.y=2.45;tm.visible=false;e.g.add(tm);e.xv.tm=tm;e.xv.hat=new THREE.Group();e.g.add(e.xv.hat)}
+ if(STY)try{const C=(r1,r2,h,y,x=0,z=0,rx=0)=>xf(new THREE.CylinderGeometry(r1,r2,h,10),x,y,z,rx),SP=(r,x,y,z,sx=1,sy=1,sz=1)=>{const g=new THREE.SphereGeometry(r,12,9);g.scale(sx,sy,sz);return g.translate(x,y,z)},pt=e.parts;
+  pt[0].geometry=mergeG([xf(rbG(.74,.5,.42,.17),0,.2,0),xf(rbG(.6,.44,.36,.13),0,-.22,.0),C(.1,.12,.16,.47)]);
+  pt[1].geometry=rbG(.78,.56,.48,.14);
+  pt[2].geometry=mergeG([SP(.25,0,0,0,.92,1.1,1),xf(rbG(.3,.2,.3,.08),0,-.13,.04),SP(.04,0,-.02,.27),C(.11,.13,.16,-.3)]);
+  pt[3].geometry=mergeG([(()=>{const g=new THREE.SphereGeometry(.31,14,8,0,Math.PI*2,0,Math.PI/2);g.scale(1,.75,1.05);return g.translate(0,-.06,0)})(),xf(rbG(.5,.04,.3,.02),0,-.06,.3)]);
+  pt[4].geometry=rbG(.4,.07,.1,.03);
+  const lg=()=>mergeG([C(.15,.115,.4,.16),SP(.115,0,-.03,.01),C(.105,.08,.38,-.17,0,.01),SP(.1,0,.0,.02)].slice(0,1).concat([C(.115,.085,.36,-.17,0,.02)]));
+  e.legL.geometry=lg();e.legR.geometry=lg();
+  e.legL.children.concat(e.legR.children).forEach(m=>{m.geometry=mergeG([rbG(.3,.16,.4,.07)])});
+  e.armL.geometry=mergeG([C(.1,.08,.5,.1),SP(.085,0,-.3,0)]);
+  if(pt[13])pt[13].geometry=mergeG([C(.1,.08,.5,.06),SP(.09,0,-.24,0)]);
+  for(const k of[9,10,11,12])if(pt[k]&&pt[k].geometry.parameters){const q=pt[k].geometry.parameters;pt[k].geometry=rbG(q.width,q.height,q.depth,.04)}
+  for(const k of[14,15])if(pt[k])pt[k].geometry=new THREE.SphereGeometry(.075,8,6);
+  e.gun.geometry=mergeG([xf(rbG(.1,.15,.46,.03),0,0,-.02),C(.022,.022,.34,.0,0,.38,Math.PI/2),xf(rbG(.07,.2,.1,.02),0,-.15,.04,.25),xf(rbG(.08,.1,.22,.03),0,-.02,-.3),xf(rbG(.05,.06,.14,.02),0,.1,.02)])}catch(er){}
  e.g.rotation.order='YXZ';scene.add(e.g);
  e.bar=new THREE.Group();e.bar.add(new THREE.Mesh(new THREE.PlaneGeometry(1.2,STY?.07:.14),barBg));
  e.fill=new THREE.Mesh(new THREE.PlaneGeometry(1.1,STY?.04:.08),barFg);e.fill.position.z=.01;e.bar.add(e.fill);scene.add(e.bar);
